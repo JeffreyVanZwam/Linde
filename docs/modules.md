@@ -2,28 +2,28 @@
 
 ## Brain
 
-`POST /api/brain/extract` haalt HTML en een paar stylesheets op, bewaart logo en afbeeldingen, en vraagt het tekstmodel om bedrijfsnaam, wie/wat, doelgroep, tone of voice, kleuren en fonts. Zonder API-sleutel blijven de heuristische velden staan en vult de gebruiker de rest zelf in. `PUT /api/brain` bewaart het profiel. De eerste bevestiging zet `onboardingCompleted`.
+`POST /api/brain/extract` fetches HTML and a few stylesheets, stores the logo and images, and asks the text model for the company name, who/what, audience, tone of voice, colours and fonts. Without an API key the heuristic fields remain and the user fills in the rest. `PUT /api/brain` saves the profile. The first confirmation sets `onboardingCompleted`.
 
-## Strategie
+## Strategy
 
-`/strategy` is een chat zonder schrijftools. De systeemprompt bevat het merkprofiel. Gesprekken en berichten blijven in `conversations` en `messages`.
+`/strategy` is a chat without writing tools. The system prompt includes the brand profile. Conversations and messages stay in `conversations` and `messages`.
 
 ## Social
 
-Koppelen start op `/api/social/connect/:provider` en komt terug op `/api/social/callback/:provider`. Providers: `linkedin`, `meta`, `youtube`, `tiktok`. Meta maakt per pagina een Facebook-account en, als die er is, een Instagram-account.
+Connecting starts at `/api/social/connect/:provider` and returns to `/api/social/callback/:provider`. Providers: `linkedin`, `meta`, `youtube`, `tiktok`. Meta creates a Facebook account per page and, when present, an Instagram account.
 
-`POST /api/social/sync` leest recente posts in. Die komen in dezelfde posttabellen met `source: synced`. De composer en de social-chat maken lokale concepten. Een Jaccard-check waarschuwt als de tekst sterk op een eerdere post lijkt.
+`POST /api/social/sync` reads recent posts. They land in the same post tables with `source: synced`. The composer and the social chat create local drafts. A Jaccard check warns when the text closely matches an earlier post.
 
-Inplannen zet `status` op `scheduled`. De taak publiceert daarna. Instagram heeft een publieke afbeeldings-URL nodig, YouTube en TikTok een video.
+Scheduling sets `status` to `scheduled`. The task publishes afterwards. Instagram needs a public image URL. YouTube and TikTok need a video.
 
-De afbeeldingseditor gebruikt Cropper.js om bij te snijden en te draaien, en een canvas voor helderheid, contrast en één tekstregel.
+The image editor uses Cropper.js to crop and rotate, and a canvas for brightness, contrast and one line of text.
 
 ## SEO / GEO
 
-De artikelen-URL staat op het merk. `POST /api/seo/refresh` leest die pagina en, als die bestaat, `/sitemap.xml`. De SEO-chat kan die lijst opvragen en een concept opslaan met markdown, FAQ, JSON-LD, zoekwoorden, interne links en GEO-notities. De app publiceert het artikel niet naar de site.
+The articles URL lives on the brand. `POST /api/seo/refresh` reads that page and, when it exists, `/sitemap.xml`. The SEO chat can request that list and save a draft with markdown, FAQ, JSON-LD, keywords, internal links and GEO notes. The app does not publish the article to the site.
 
 ## Outreach
 
-De chat slaat een campagne en stappen op. De gebruiker voegt zelf ontvangers toe (regels of CSV). "Conceptmails maken" zet per ontvanger en stap een bericht klaar, nog niet verzonden. Accorderen of een tijdstip kiezen maakt het bericht klaar voor de cron. Elke mail krijgt een afmeldlink. Een daglimiet beperkt het aantal verzonden berichten. IMAP, als ingevuld, stopt de reeks na een antwoord van dat adres.
+The chat stores a campaign and its steps. The user adds recipients (lines or CSV). "Create draft emails" prepares a message per recipient and step, not yet sent. Approving or choosing a time makes the message ready for the cron. Every email gets an unsubscribe link. A daily limit caps how many messages are sent. IMAP, when configured, stops the sequence after a reply from that address.
 
-SMTP gaat versleuteld de database in. Zonder SMTP gebruikt de app `MAIL_API_URL` en `MAIL_API_KEY`.
+SMTP is stored encrypted. Without SMTP the app uses `MAIL_API_URL` and `MAIL_API_KEY`.

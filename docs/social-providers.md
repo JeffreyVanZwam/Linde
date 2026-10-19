@@ -1,22 +1,22 @@
-# Een social provider toevoegen
+# Adding a social provider
 
-De bestaande adapters staan in `server/utils/social/`. Elk platform heeft dezelfde vorm: een autorisatie-URL, een code-wissel, een profiel, recente posts en een publish-functie.
+The existing adapters live in `server/utils/social/`. Each platform has the same shape: an authorization URL, a code exchange, a profile, recent posts and a publish function.
 
-## Stappen
+## Steps
 
-1. Voeg het platform toe aan `socialPlatforms` of, als het een aparte OAuth-app is, aan `connectProviders` in `shared/platforms.ts`. Zet daar ook de tekstlimiet en of een afbeelding of video verplicht is.
-2. Maak `server/utils/social/<naam>.ts` met `authUrl`, `exchange`, `recent` en `publish`. Gebruik `formPost` en `jsonRequest` uit `http.ts`.
-3. Hang de start-URL in `server/api/social/connect/[platform].get.ts`.
-4. Hang de callback in `server/api/social/callback/[platform].get.ts` en sla het account op met `upsertSocialAccount`. Tokens worden daar versleuteld.
-5. Roep `recent` aan vanuit `server/utils/social/sync.ts` en `publish` vanuit `server/utils/social/publish.ts`.
-6. Vernieuw tokens in `readyAccount` als het platform een refresh-token heeft.
-7. Zet de client-id en secret in `nuxt.config.ts` (`runtimeConfig`), `.env.example` en `docs/environment.md`.
-8. Voeg de knop toe op `app/pages/social/accounts.vue` en een i18n-label als de naam niet het platform-id is.
-9. Werk de kalenderfilter in `app/components/social/PostCalendar.vue` bij.
+1. Add the platform to `socialPlatforms` or, if it is a separate OAuth app, to `connectProviders` in `shared/platforms.ts`. Also set the text limit and whether an image or video is required.
+2. Create `server/utils/social/<name>.ts` with `authUrl`, `exchange`, `recent` and `publish`. Use `formPost` and `jsonRequest` from `http.ts`.
+3. Wire the start URL in `server/api/social/connect/[platform].get.ts`.
+4. Wire the callback in `server/api/social/callback/[platform].get.ts` and save the account with `upsertSocialAccount`. Tokens are encrypted there.
+5. Call `recent` from `server/utils/social/sync.ts` and `publish` from `server/utils/social/publish.ts`.
+6. Refresh tokens in `readyAccount` when the platform has a refresh token.
+7. Put the client id and secret in `nuxt.config.ts` (`runtimeConfig`), `.env.example` and `docs/environment.md`.
+8. Add the button on `app/pages/social/accounts.vue` and an i18n label when the name is not the platform id.
+9. Update the calendar filter in `app/components/social/PostCalendar.vue`.
 
-## Afspraken
+## Rules
 
-- De redirect-URI is altijd `{BETTER_AUTH_URL}/api/social/callback/<provider>`.
-- Een mislukte historie-sync mag het koppelen niet terugdraaien. Geef de fout terug als `warning`.
-- Publiceer alleen targets die bij de ingelogde gebruiker horen. `publishPost` doet dat via het post-record.
-- Schrijf geen tokens naar de logs.
+- The redirect URI is always `{BETTER_AUTH_URL}/api/social/callback/<provider>`.
+- A failed history sync must not undo the connection. Return the error as `warning`.
+- Publish only targets that belong to the signed-in user. `publishPost` does that through the post record.
+- Do not write tokens to the logs.

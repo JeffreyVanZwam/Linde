@@ -1,29 +1,29 @@
-# Architectuur
+# Architecture
 
-Eén Nuxt 4-app. De browser praat alleen met Nitro-routes. SQLite (libSQL) bewaart gebruikers, merk, chats, posts en campagnes in `.data/app.db`.
+One Nuxt 4 app. The browser talks only to Nitro routes. SQLite (libSQL) stores users, the brand, chats, posts and campaigns in `.data/app.db`.
 
 ```text
-app/            pagina's, layouts, componenten
-i18n/locales    nl (standaard) en en
-server/api      HTTP-routes, invoer via Zod
-server/db       Drizzle-schema en het aanmaakscript
+app/            pages, layouts, components
+i18n/locales    nl (default) and en
+server/api      HTTP routes, input via Zod
+server/db       Drizzle schema and the create script
 server/utils    auth, AI, Brain, social, mail, SEO
-server/tasks    minutelijke publicatie en verzending
-shared/         platformlimieten voor client en server
+server/tasks    minute-by-minute publishing and sending
+shared/         platform limits for client and server
 ```
 
 ## Auth
 
-better-auth met e-mail en wachtwoord. De handler staat op `server/api/auth/[...all].ts`. `app/middleware/auth.global.ts` stuurt anonieme bezoekers naar login en nieuwe gebruikers naar onboarding zolang het merkprofiel niet bevestigd is.
+better-auth with email and password. The handler is `server/api/auth/[...all].ts`. `app/middleware/auth.global.ts` sends anonymous visitors to login, and new users to onboarding until the brand profile is confirmed.
 
 ## AI
 
-`server/utils/ai.ts` kiest OpenAI of Anthropic op basis van `AI_PROVIDER`. Afbeeldingen komen alleen van OpenAI, of helemaal niet als `IMAGE_PROVIDER=none`. Chats lopen via `streamText` in `server/utils/chat/run.ts`. Tools schrijven concepten weg; de tekststroom legt uit wat er gebeurde.
+`server/utils/ai.ts` picks OpenAI or Anthropic from `AI_PROVIDER`. Images come only from OpenAI, or not at all when `IMAGE_PROVIDER=none`. Chats run through `streamText` in `server/utils/chat/run.ts`. Tools write drafts; the text stream explains what happened.
 
-## Achtergrondtaken
+## Background tasks
 
-Nitro draait elke minuut `social:publish` en `outreach:send`. Die taken pakken alleen posts met status `scheduled` en mails met status `approved` of `scheduled` waarvan het tijdstip verstreken is. Lokaal gebeurt dat alleen terwijl `pnpm dev` draait.
+Nitro runs `social:publish` and `outreach:send` every minute. Those tasks only pick up posts with status `scheduled` and mail with status `approved` or `scheduled` whose time has passed. Locally that happens only while `pnpm dev` is running.
 
-## Bestanden
+## Files
 
-Uploads staan in `.data/uploads/{userId}`. `GET /api/media/:id` geeft het bestand aan de eigenaar, of aan een platform dat een korte ondertekende URL meekrijgt (Instagram).
+Uploads live in `.data/uploads/{userId}`. `GET /api/media/:id` serves the file to its owner, or to a platform that receives a short signed URL (Instagram).

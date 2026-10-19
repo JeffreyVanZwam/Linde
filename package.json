@@ -1,5 +1,7 @@
 {
   "name": "marketing-dashboard",
+  "description": "Local-first marketing dashboard. Extract a brand from a website, then draft strategy, social posts, SEO articles and outreach with your own LLM keys.",
+  "license": "MIT",
   "type": "module",
   "private": true,
   "engines": {

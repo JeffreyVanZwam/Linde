@@ -1,27 +1,33 @@
-# Bijdragen
+# Contributing
 
-Dit project is een lokale Nuxt-app. Bijdragen zijn welkom als ze een module kleiner, duidelijker of betrouwbaarder maken.
+Linde is a local Nuxt app, licensed under MIT. Contributions are welcome when they make a module smaller, clearer or more reliable.
 
-## Omgeving
+## Setup
 
 1. Node.js 22+.
 2. `corepack pnpm install`
-3. Kopieer `.env.example` naar `.env` en vul secrets in.
+3. Copy `.env.example` to `.env` and fill in the secrets.
 4. `corepack pnpm dev`
 
-De database hoeft geen aparte migratie voor een schone start: `server/db/ensure.ts` maakt de tabellen. Na een schemawijziging werk je zowel `server/db/schema.ts` als `server/db/ensure.ts` bij, en draai je `corepack pnpm db:push` op een bestaande database.
+A clean install does not need a separate migration: `server/db/ensure.ts` creates the tables. After a schema change, update both `server/db/schema.ts` and `server/db/ensure.ts`, then run `corepack pnpm db:push` on an existing database.
 
-## Afspraken
+## Conventions
 
-- TypeScript overal. Vue-componenten in `app/components`, PascalCase als bestandsnaam.
-- Tailwind voor stijl. Geen losse CSS behalve het thema in `app/assets/css/main.css` en de cropper.
-- Nieuwe zichtbare tekst hoort in `i18n/locales/nl.json` en `en.json`. Nederlands is de standaardtaal.
-- Elke `server/api`-invoer wordt met Zod gecontroleerd.
-- Secrets blijven in `.env`. OAuth-tokens en het SMTP-wachtwoord gaan versleuteld de database in via `server/utils/crypto.ts`.
-- Geen e-mailscraping en geen trucs om spamfilters te omzeilen. Ontvangers komen van de gebruiker.
+- TypeScript everywhere. Vue components live in `app/components`, with PascalCase file names.
+- Tailwind for styling. No extra CSS except the theme in `app/assets/css/main.css` and the cropper.
+- New user-facing copy belongs in both `i18n/locales/nl.json` and `en.json`. Dutch is the default product language. Documentation stays in English.
+- Every `server/api` entry is validated with Zod.
+- Secrets stay in `.env`. OAuth tokens and the SMTP password are stored encrypted via `server/utils/crypto.ts`.
+- No email scraping and no tricks to bypass spam filters. Recipients come from the user.
 
 ## Pull requests
 
-Beschrijf welk gedrag verandert en hoe je het lokaal hebt gecontroleerd. Houd een PR bij één module als dat kan: Brain, strategie, social, SEO of outreach.
+Describe which behaviour changes and how you checked it locally. Keep a pull request to one module when you can: Brain, strategy, social, SEO or outreach.
 
-Een nieuwe social provider volgt [docs/social-providers.md](docs/social-providers.md).
+A new social provider follows [docs/social-providers.md](docs/social-providers.md).
+
+## Good places to start
+
+- Docs that no longer match the code.
+- A missing English or Dutch string.
+- A provider, prompt or mail edge case you can reproduce locally.
