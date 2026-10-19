@@ -71,6 +71,7 @@ async function send() {
   pending.value = ''
   history.value.push({ id: `local-${Date.now()}`, role: 'user', content })
   draft.value = ''
+  let createdId = ''
   try {
     const response = await fetch('/api/chat', {
       method: 'POST',
@@ -82,6 +83,7 @@ async function send() {
         locale: locale.value,
       }),
     })
+    createdId = response.headers.get('x-conversation-id') || ''
     if (!response.ok) {
       const data = await response.json().catch(() => ({}))
       throw new Error(data.statusMessage || t('common.error'))
@@ -93,19 +95,20 @@ async function send() {
       if (chunk.done) break
       pending.value += decoder.decode(chunk.value, { stream: true })
     }
-    const conversationId = response.headers.get('x-conversation-id')
-    if (conversationId && props.conversationId === 'new') {
-      await navigateTo(localePath(`${basePath.value}/${conversationId}`))
-      return
-    }
-    await load()
-    pending.value = ''
   }
   catch (cause) {
     error.value = cause instanceof Error ? cause.message : t('common.error')
   }
   finally {
     busy.value = false
+  }
+  if (createdId && props.conversationId === 'new') {
+    await navigateTo(localePath(`${basePath.value}/${createdId}`))
+    return
+  }
+  if (props.conversationId && props.conversationId !== 'new') {
+    await load()
+    pending.value = ''
   }
 }
 

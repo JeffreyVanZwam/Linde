@@ -55,7 +55,10 @@ export default defineNuxtConfig({
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL || 'file:.data/app.db',
     encryptionKey: process.env.ENCRYPTION_KEY || '',
-    aiProvider: process.env.AI_PROVIDER || 'openai',
+    aiProvider: process.env.AI_PROVIDER || 'free',
+    freeBaseUrl: process.env.FREE_BASE_URL || 'https://text.pollinations.ai/v1',
+    freeModel: process.env.FREE_MODEL || 'openai-fast',
+    freeApiKey: process.env.FREE_API_KEY || '',
     openaiApiKey: process.env.OPENAI_API_KEY || '',
     anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
     geminiApiKey: process.env.GEMINI_API_KEY || '',
@@ -77,7 +80,7 @@ export default defineNuxtConfig({
     mailApiKey: process.env.MAIL_API_KEY || '',
     outreachDailyLimit: process.env.OUTREACH_DAILY_LIMIT || '50',
     public: {
-      aiProvider: process.env.AI_PROVIDER || 'openai',
+      aiProvider: process.env.AI_PROVIDER || 'free',
       imageProvider: process.env.IMAGE_PROVIDER || 'openai',
       appUrl: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
     },

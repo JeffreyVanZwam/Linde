@@ -4,6 +4,7 @@ const localePath = useLocalePath()
 const api = useRequestFetch()
 const providers = await api<{
   aiProvider: string
+  tier: 'free' | 'paid'
   model: string
   imageProvider: string
   textReady: boolean
@@ -34,11 +35,11 @@ const providers = await api<{
         {{ t('settings.text') }}
       </p>
       <p class="mt-2 font-serif text-3xl">
-        {{ providers.aiProvider }}
+        {{ providers.tier === 'free' ? t('settings.free') : providers.aiProvider }}
       </p>
       <p class="text-sm text-stone-600">
         {{ providers.model }}
-        · {{ providers.textReady ? t('settings.ready') : t('settings.missing') }}
+        · {{ providers.tier === 'free' ? t('settings.noKey') : (providers.textReady ? t('settings.ready') : t('settings.missing')) }}
       </p>
     </UiCard>
     <UiCard>

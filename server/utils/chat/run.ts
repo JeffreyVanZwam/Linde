@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { chatModules, platformLimits, socialPlatforms, type ChatModule } from '~~/shared/platforms'
 import { useDb } from '../../db/client'
 import { articleDrafts, conversations, messages, outreachCampaigns, outreachSteps, siteArticles, socialAccounts, socialPostTargets, socialPosts } from '../../db/schema'
-import { getLanguageModel } from '../ai'
+import { aiConfig, getLanguageModel } from '../ai'
 import { brandInstructions, getBrand } from '../brand'
 import { duplicateWarning } from '../similarity'
 import { id } from '../http'
@@ -57,29 +57,63 @@ export async function streamChat(userId: string, input: z.infer<typeof chatSchem
   })
   const brand = await getBrand(userId)
   const language = input.locale === 'en' ? 'Answer in English.' : 'Antwoord in het Nederlands.'
+  const ai = aiConfig()
+  const fallback = input.locale === 'en'
+    ? 'Done. The result is saved in this module.'
+    : 'Klaar. Het resultaat staat in deze module.'
+  let saved = false
+  async function saveAssistant(content: string) {
+    if (saved) return
+    saved = true
+    await db.insert(messages).values({
+      id: id(),
+      conversationId: conversationId!,
+      role: 'assistant',
+      content,
+      createdAt: new Date(),
+    })
+  }
   const result = streamText({
     model: getLanguageModel(),
+    maxRetries: ai.tier === 'free' ? 0 : 2,
     instructions: `${language}\n\n${instructions(input.module)}\n\nMerkprofiel:\n${brandInstructions(brand)}`,
     messages: history
       .filter(message => message.role === 'user' || message.role === 'assistant')
       .map(message => ({ role: message.role as 'user' | 'assistant', content: message.content })),
     tools: toolsFor(userId, input.module, conversationId),
     stopWhen: stepCountIs(5),
-    abortSignal: AbortSignal.timeout(120_000),
-    onFinish: async ({ text }) => {
-      await db.insert(messages).values({
-        id: id(),
-        conversationId: conversationId!,
-        role: 'assistant',
-        content: text.trim() || (input.locale === 'en' ? 'Done. The result is saved in this module.' : 'Klaar. Het resultaat staat in deze module.'),
-        createdAt: new Date(),
-      })
+    abortSignal: AbortSignal.timeout(180_000),
+    onError: async ({ error }) => {
+      await saveAssistant(failureText(error, input.locale))
+    },
+    onFinish: async ({ text, toolCalls, steps }) => {
+      await saveAssistant(replyText(text, toolCalls, steps, fallback))
     },
   })
   const response = result.toTextStreamResponse()
   const headers = new Headers(response.headers)
   headers.set('x-conversation-id', conversationId)
   return new Response(response.body, { status: response.status, headers })
+}
+
+function replyText(text: string, toolCalls: readonly unknown[], steps: readonly { text: string }[], fallback: string) {
+  const prose = steps
+    .map(step => step.text.trim())
+    .filter(part => part.length > 0 && !part.startsWith('{') && !part.startsWith('['))
+  if (prose.length) return prose.join('\n\n')
+  if (toolCalls.length) return fallback
+  return text.trim() || fallback
+}
+
+function failureText(error: unknown, locale: 'nl' | 'en') {
+  const message = error instanceof Error ? error.message : ''
+  const retry = message.match(/retry after (\d+)/i)?.[1]
+  if (locale === 'en') {
+    if (retry) return `The free model is busy. Try again in ${retry} seconds.`
+    return message ? `The model did not answer. ${message.slice(0, 280)}` : 'The model did not answer.'
+  }
+  if (retry) return `Het gratis model is even bezet. Probeer het over ${retry} seconden opnieuw.`
+  return message ? `Het model gaf geen antwoord. ${message.slice(0, 280)}` : 'Het model gaf geen antwoord.'
 }
 
 function instructions(module: ChatModule) {

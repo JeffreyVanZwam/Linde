@@ -1,6 +1,6 @@
 # Linde
 
-Linde is a local-first marketing dashboard built with Nuxt. Register, point it at a website, and let Brain extract a brand profile. From there, chat with your own LLM (OpenAI, Anthropic or Gemini) for strategy, social posts, SEO/GEO articles and outreach.
+Linde is a local-first marketing dashboard built with Nuxt. Register, point it at a website, and let Brain extract a brand profile. From there, chat for strategy, social posts, SEO/GEO articles and outreach. The default text model is free and needs no key. OpenAI, Anthropic and Gemini stay available when you add your own keys.
 
 Social publishing supports LinkedIn, Meta (Facebook and Instagram), YouTube and TikTok once you add your own developer-app keys. Pick a theme in the header (Cyprus, Plum, Alabaster or Mint). On a phone, Linde installs as a PWA.
 
@@ -18,7 +18,7 @@ corepack pnpm dev
 
 Open `http://localhost:3000`, create an account and paste a website URL. The SQLite file lives at `.data/app.db` and is created on first start.
 
-In `.env`, change at least `BETTER_AUTH_SECRET` and `ENCRYPTION_KEY`. Without `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` or `GEMINI_API_KEY`, extraction still works heuristically (title, colours, fonts, images), but the chats do not.
+In `.env`, change at least `BETTER_AUTH_SECRET` and `ENCRYPTION_KEY`. Chats use the free text model unless `AI_PROVIDER` is set to `openai`, `anthropic` or `gemini`. If that free call fails, brand extraction still keeps the heuristic fields (title, colours, fonts, images).
 
 ## What it does
 

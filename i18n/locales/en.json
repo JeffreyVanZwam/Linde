@@ -150,9 +150,11 @@
   },
   "settings": {
     "title": "Settings",
-    "lead": "AI keys stay in .env. This page shows what is active.",
+    "lead": "The free text model is on by default. Paid keys stay in .env.",
     "theme": "Theme",
     "text": "Text model",
+    "free": "Free",
+    "noKey": "No key needed",
     "image": "Images",
     "ready": "Ready",
     "missing": "Key missing",

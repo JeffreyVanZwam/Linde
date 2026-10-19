@@ -2,7 +2,7 @@
 
 ## Brain
 
-`POST /api/brain/extract` fetches HTML and a few stylesheets, stores the logo and images, and asks the text model for the company name, who/what, audience, tone of voice, colours and fonts. Without an API key the heuristic fields remain and the user fills in the rest. `PUT /api/brain` saves the profile. The first confirmation sets `onboardingCompleted`.
+`POST /api/brain/extract` fetches HTML and a few stylesheets, stores the logo and images, and asks the text model for the company name, who/what, audience, tone of voice, colours and fonts. If that call fails, the heuristic fields remain and the user fills in the rest. `PUT /api/brain` saves the profile. The first confirmation sets `onboardingCompleted`.
 
 ## Strategy
 

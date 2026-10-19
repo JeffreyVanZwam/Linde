@@ -8,8 +8,11 @@ Copy `.env.example` to `.env`. Nuxt reads everything below at startup.
 | `BETTER_AUTH_URL` | Public origin, locally `http://localhost:3000`. OAuth redirects are built from this. |
 | `DATABASE_URL` | SQLite file, default `file:.data/app.db`. |
 | `ENCRYPTION_KEY` | Key for OAuth tokens and the SMTP password. |
-| `AI_PROVIDER` | `openai`, `anthropic` or `gemini`. |
-| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | Key for the chosen provider. |
+| `AI_PROVIDER` | `free` (default), `openai`, `anthropic` or `gemini`. |
+| `FREE_BASE_URL` | OpenAI-compatible chat endpoint for `free`. Default `https://text.pollinations.ai/v1`. Prompts leave the machine. |
+| `FREE_MODEL` | Free text model. Default `openai-fast`. |
+| `FREE_API_KEY` | Optional. Anonymous access works without it. The free route is rate-limited. |
+| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | Key for the chosen paid provider. |
 | `OPENAI_MODEL` / `ANTHROPIC_MODEL` / `GEMINI_MODEL` | Model name your account is allowed to use. |
 | `IMAGE_PROVIDER` | `openai` or `none`. |
 | `OPENAI_IMAGE_MODEL` | Image model, default `gpt-image-1`. |

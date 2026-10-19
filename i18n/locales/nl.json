@@ -150,9 +150,11 @@
   },
   "settings": {
     "title": "Instellingen",
-    "lead": "AI-sleutels blijven in .env. Hier zie je wat er actief is.",
+    "lead": "Het gratis tekstmodel staat standaard aan. Betaalde sleutels blijven in .env.",
     "theme": "Thema",
     "text": "Tekstmodel",
+    "free": "Gratis",
+    "noKey": "Geen sleutel nodig",
     "image": "Afbeeldingen",
     "ready": "Klaar",
     "missing": "Sleutel ontbreekt",
