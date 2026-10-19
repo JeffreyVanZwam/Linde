@@ -34,6 +34,7 @@ async function remove(id: string) {
 
 <template>
   <div class="space-y-6">
+    <AppBack to="/social" />
     <h1 class="font-serif text-5xl">
       {{ t('social.accounts') }}
     </h1>

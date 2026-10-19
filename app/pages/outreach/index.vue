@@ -27,5 +27,11 @@ const campaigns = await api<Array<{ id: string, name: string, status: string }>>
     <NuxtLink v-for="campaign in campaigns" :key="campaign.id" :to="localePath(`/outreach/${campaign.id}`)" class="block rounded-3xl border border-line bg-white px-5 py-4">
       {{ campaign.name }} · {{ campaign.status }}
     </NuxtLink>
+    <section class="space-y-3">
+      <h2 class="font-serif text-2xl">
+        {{ t('chat.list') }}
+      </h2>
+      <ChatList module="outreach" />
+    </section>
   </div>
 </template>

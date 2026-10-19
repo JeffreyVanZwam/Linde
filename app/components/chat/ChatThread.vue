@@ -25,6 +25,16 @@ const basePath = computed(() => {
 })
 
 const api = useRequestFetch()
+const { confirmDelete, deleteChat } = useDeleteChat()
+const removing = ref(false)
+const canDelete = computed(() => Boolean(props.conversationId && props.conversationId !== 'new'))
+
+const listPath = computed(() => {
+  if (props.module === 'strategy') return '/strategy'
+  if (props.module === 'social') return '/social'
+  if (props.module === 'seo') return '/seo'
+  return '/outreach'
+})
 
 async function load() {
   if (!props.conversationId || props.conversationId === 'new') {
@@ -38,9 +48,24 @@ async function load() {
 await load()
 watch(() => props.conversationId, load)
 
+async function removeConversation() {
+  if (!canDelete.value || !props.conversationId || removing.value || busy.value) return
+  if (!confirmDelete()) return
+  removing.value = true
+  error.value = ''
+  try {
+    await deleteChat(props.conversationId)
+    await navigateTo(localePath(listPath.value))
+  }
+  catch (cause) {
+    error.value = errorText(cause) || t('common.error')
+    removing.value = false
+  }
+}
+
 async function send() {
   const content = draft.value.trim()
-  if (!content || busy.value) return
+  if (!content || busy.value || removing.value) return
   error.value = ''
   busy.value = true
   pending.value = ''
@@ -101,7 +126,14 @@ const suggestions = computed(() => {
 </script>
 
 <template>
-  <UiCard class="flex min-h-[32rem] flex-col">
+  <div class="space-y-4">
+    <AppBack :to="listPath" />
+    <UiCard class="flex min-h-[32rem] flex-col">
+    <div v-if="canDelete" class="mb-4 flex justify-end">
+      <UiButton variant="danger" :disabled="busy || removing" @click="removeConversation">
+        {{ removing ? t('common.loading') : t('chat.delete') }}
+      </UiButton>
+    </div>
     <div class="flex-1 space-y-4">
       <p v-if="!history.length && !pending" class="text-sm text-stone-500">
         {{ t('strategy.empty') }}
@@ -137,12 +169,13 @@ const suggestions = computed(() => {
     </div>
     <form class="mt-4 flex flex-col gap-2 sm:flex-row" @submit.prevent="send">
       <UiTextarea v-model="draft" :rows="3" :placeholder="t('chat.placeholder')" class="flex-1" />
-      <UiButton type="submit" :disabled="busy">
+      <UiButton type="submit" :disabled="busy || removing">
         {{ busy ? t('common.loading') : t('chat.send') }}
       </UiButton>
     </form>
     <p class="sr-only">
       {{ route.path }}
     </p>
-  </UiCard>
+    </UiCard>
+  </div>
 </template>

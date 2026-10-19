@@ -30,5 +30,11 @@ const local = computed(() => posts.filter(post => post.status !== 'published').s
         {{ post.status }} · {{ post.body.slice(0, 100) }}
       </NuxtLink>
     </UiCard>
+    <section class="space-y-3">
+      <h2 class="font-serif text-2xl">
+        {{ t('chat.list') }}
+      </h2>
+      <ChatList module="social" />
+    </section>
   </div>
 </template>

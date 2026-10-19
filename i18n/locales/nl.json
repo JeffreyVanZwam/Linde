@@ -162,7 +162,12 @@
     "placeholder": "Schrijf een bericht",
     "send": "Versturen",
     "you": "Jij",
-    "assistant": "Assistent"
+    "assistant": "Assistent",
+    "list": "Gesprekken",
+    "empty": "Nog geen gesprekken.",
+    "delete": "Verwijderen",
+    "deleteNamed": "Verwijder {title}",
+    "confirmDelete": "Dit gesprek verwijderen? De berichten worden gewist."
   },
   "unsubscribe": {
     "title": "Afgemeld",
@@ -173,6 +178,7 @@
     "save": "Opslaan",
     "loading": "Bezig…",
     "error": "Er ging iets mis",
-    "language": "Taal"
+    "language": "Taal",
+    "back": "Vorige"
   }
 }

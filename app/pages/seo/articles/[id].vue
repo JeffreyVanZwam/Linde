@@ -24,6 +24,7 @@ async function copy() {
 
 <template>
   <article class="mx-auto max-w-3xl space-y-6">
+    <AppBack to="/seo" />
     <p class="text-xs uppercase tracking-[0.2em] text-stone-400">
       {{ draft.slug }}
     </p>

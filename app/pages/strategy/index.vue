@@ -1,8 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const localePath = useLocalePath()
-const api = useRequestFetch()
-const chats = await api<Array<{ id: string, title: string, updatedAt: string }>>('/api/conversations?module=strategy')
 </script>
 
 <template>
@@ -20,13 +18,6 @@ const chats = await api<Array<{ id: string, title: string, updatedAt: string }>>
         {{ t('strategy.new') }}
       </UiButton>
     </div>
-    <p v-if="!chats.length" class="text-sm text-stone-500">
-      {{ t('strategy.empty') }}
-    </p>
-    <div class="grid gap-3">
-      <NuxtLink v-for="chat in chats" :key="chat.id" :to="localePath(`/strategy/${chat.id}`)" class="rounded-3xl border border-line bg-white px-5 py-4">
-        {{ chat.title }}
-      </NuxtLink>
-    </div>
+    <ChatList module="strategy" :empty="t('strategy.empty')" />
   </div>
 </template>

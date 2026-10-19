@@ -162,7 +162,12 @@
     "placeholder": "Write a message",
     "send": "Send",
     "you": "You",
-    "assistant": "Assistant"
+    "assistant": "Assistant",
+    "list": "Chats",
+    "empty": "No chats yet.",
+    "delete": "Delete",
+    "deleteNamed": "Delete {title}",
+    "confirmDelete": "Delete this chat? The messages will be removed."
   },
   "unsubscribe": {
     "title": "Unsubscribed",
@@ -173,6 +178,7 @@
     "save": "Save",
     "loading": "Working…",
     "error": "Something went wrong",
-    "language": "Language"
+    "language": "Language",
+    "back": "Back"
   }
 }

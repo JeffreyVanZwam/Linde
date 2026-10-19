@@ -49,7 +49,9 @@ async function save() {
 </script>
 
 <template>
-  <form class="mx-auto max-w-2xl space-y-4" @submit.prevent="save">
+  <div class="mx-auto max-w-2xl space-y-4">
+    <AppBack to="/outreach" />
+    <form class="space-y-4" @submit.prevent="save">
     <h1 class="font-serif text-5xl">
       {{ t('outreach.smtp') }}
     </h1>
@@ -77,5 +79,6 @@ async function save() {
     <UiButton type="submit">
       {{ t('outreach.save') }}
     </UiButton>
-  </form>
+    </form>
+  </div>
 </template>
