@@ -1,6 +1,6 @@
 # Contributing
 
-Linde is a local Nuxt app, licensed under MIT. Contributions are welcome when they make a module smaller, clearer or more reliable.
+Linde is a local Nuxt app, licensed under MIT. Contributions are welcome when they make a module smaller, clearer or more reliable. We welcome code contributors, translators, and many more!
 
 ## Setup
 
@@ -19,6 +19,7 @@ A clean install does not need a separate migration: `server/db/ensure.ts` create
 - Every `server/api` entry is validated with Zod.
 - Secrets stay in `.env`. OAuth tokens and the SMTP password are stored encrypted via `server/utils/crypto.ts`.
 - No email scraping and no tricks to bypass spam filters. Recipients come from the user.
+- Although the app does provide themes, we're not creating a coloring book. New themes are allowed but have the lowest priority and acceptance.
 
 ## Pull requests
 
