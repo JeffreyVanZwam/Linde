@@ -31,18 +31,18 @@ async function logout() {
 </script>
 
 <template>
-  <button class="fixed left-3 top-3 z-40 flex size-11 items-center justify-center rounded-full bg-ink text-white lg:hidden" type="button" :aria-label="t('nav.menu')" @click="open = !open">
+  <button class="nav-surface fixed left-3 top-3 z-40 flex size-11 items-center justify-center rounded-full bg-accent text-white lg:hidden" type="button" :aria-label="t('nav.menu')" @click="open = !open">
     <Icon name="solar:hamburger-menu-linear" class="size-5" />
   </button>
   <div v-if="open" class="fixed inset-0 z-30 bg-ink/40 lg:hidden" @click="open = false" />
   <motion.aside
-    class="fixed inset-y-0 left-0 z-40 flex w-[min(18rem,calc(100vw-3rem))] flex-col bg-ink px-4 py-5 text-stone-100 sm:px-5 sm:py-6"
+    class="nav-surface fixed inset-y-0 left-0 z-40 flex w-[min(18rem,calc(100vw-3rem))] flex-col bg-accent px-4 py-5 text-white sm:px-5 sm:py-6"
     :class="open ? 'flex' : 'hidden lg:flex'"
     :initial="{ x: -12, opacity: 0 }"
     :animate="{ x: 0, opacity: 1 }"
   >
     <NuxtLink :to="localePath('/')" class="flex items-center gap-3" @click="open = false">
-      <AppMark class="size-9 text-accent" />
+      <AppMark inverted class="size-9 text-accent" />
       <span class="font-serif text-2xl">{{ t('app.name') }}</span>
     </NuxtLink>
     <nav class="mt-8 flex flex-1 flex-col gap-1 sm:mt-10">

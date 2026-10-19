@@ -103,6 +103,11 @@
   color: #142000;
 }
 
+[data-theme="mint"] .nav-surface,
+[data-theme="caramel"] .nav-surface {
+  color: #142000;
+}
+
 html {
   scroll-behavior: smooth;
 }
