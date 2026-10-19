@@ -18,7 +18,7 @@ better-auth with email and password. The handler is `server/api/auth/[...all].ts
 
 ## AI
 
-`server/utils/ai.ts` picks OpenAI or Anthropic from `AI_PROVIDER`. Images come only from OpenAI, or not at all when `IMAGE_PROVIDER=none`. Chats run through `streamText` in `server/utils/chat/run.ts`. Tools write drafts; the text stream explains what happened.
+`server/utils/ai.ts` picks OpenAI, Anthropic or Gemini from `AI_PROVIDER`. Images come only from OpenAI, or not at all when `IMAGE_PROVIDER=none`. Chats run through `streamText` in `server/utils/chat/run.ts`. Tools write drafts; the text stream explains what happened.
 
 ## Background tasks
 

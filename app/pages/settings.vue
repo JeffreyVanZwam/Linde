@@ -4,9 +4,8 @@ const localePath = useLocalePath()
 const api = useRequestFetch()
 const providers = await api<{
   aiProvider: string
+  model: string
   imageProvider: string
-  openaiModel: string
-  anthropicModel: string
   textReady: boolean
   imageReady: boolean
   mailApi: boolean
@@ -38,7 +37,7 @@ const providers = await api<{
         {{ providers.aiProvider }}
       </p>
       <p class="text-sm text-stone-600">
-        {{ providers.aiProvider === 'anthropic' ? providers.anthropicModel : providers.openaiModel }}
+        {{ providers.model }}
         · {{ providers.textReady ? t('settings.ready') : t('settings.missing') }}
       </p>
     </UiCard>

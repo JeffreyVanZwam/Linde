@@ -8,9 +8,9 @@ Copy `.env.example` to `.env`. Nuxt reads everything below at startup.
 | `BETTER_AUTH_URL` | Public origin, locally `http://localhost:3000`. OAuth redirects are built from this. |
 | `DATABASE_URL` | SQLite file, default `file:.data/app.db`. |
 | `ENCRYPTION_KEY` | Key for OAuth tokens and the SMTP password. |
-| `AI_PROVIDER` | `openai` or `anthropic`. |
-| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Key for the chosen provider. |
-| `OPENAI_MODEL` / `ANTHROPIC_MODEL` | Model name your account is allowed to use. |
+| `AI_PROVIDER` | `openai`, `anthropic` or `gemini`. |
+| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | Key for the chosen provider. |
+| `OPENAI_MODEL` / `ANTHROPIC_MODEL` / `GEMINI_MODEL` | Model name your account is allowed to use. |
 | `IMAGE_PROVIDER` | `openai` or `none`. |
 | `OPENAI_IMAGE_MODEL` | Image model, default `gpt-image-1`. |
 | `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | LinkedIn app. Redirect: `{BETTER_AUTH_URL}/api/social/callback/linkedin`. |

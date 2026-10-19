@@ -1,14 +1,15 @@
 import { requireUser } from '../../utils/auth'
+import { aiConfig, hasLanguageModel } from '../../utils/ai'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
   const config = useRuntimeConfig()
+  const ai = aiConfig()
   return {
-    aiProvider: config.public.aiProvider,
+    aiProvider: ai.provider,
+    model: ai.model,
     imageProvider: config.public.imageProvider,
-    openaiModel: config.openaiModel,
-    anthropicModel: config.anthropicModel,
-    textReady: config.aiProvider === 'anthropic' ? Boolean(config.anthropicApiKey) : Boolean(config.openaiApiKey),
+    textReady: hasLanguageModel(),
     imageReady: config.imageProvider !== 'none' && Boolean(config.openaiApiKey),
     mailApi: Boolean(config.mailApiUrl && config.mailApiKey),
     social: {
