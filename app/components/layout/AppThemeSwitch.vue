@@ -6,14 +6,14 @@ const { id, set } = useTheme()
 </script>
 
 <template>
-  <div class="grid grid-cols-2 gap-3 sm:grid-cols-3" role="listbox" :aria-label="t('theme.label')">
+  <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" role="listbox" :aria-label="t('theme.label')">
     <button
       v-for="item in themeIds"
       :key="item"
       type="button"
       role="option"
-      class="rounded-2xl border p-2.5 text-left transition"
-      :class="id === item ? 'ring-2 ring-ink ring-offset-2 ring-offset-paper' : ''"
+      class="rounded-[1.25rem] border p-2.5 text-left transition duration-200 active:scale-[0.98]"
+      :class="id === item ? 'ring-2 ring-ink ring-offset-2 ring-offset-paper' : 'hover:-translate-y-0.5'"
       :style="{ background: themes[item].paper, borderColor: themes[item].line }"
       :aria-label="t(`theme.${item}`)"
       :aria-selected="id === item"
@@ -25,7 +25,10 @@ const { id, set } = useTheme()
           <span class="h-2 w-2/3 rounded-full" :style="{ background: themes[item].accent2 }" />
           <span class="h-1.5 w-full rounded-full" :style="{ background: themes[item].line }" />
           <span class="h-1.5 w-4/5 rounded-full" :style="{ background: themes[item].line }" />
-          <span class="mt-1 h-3.5 w-8 rounded-full" :style="{ background: themes[item].accent }" />
+          <span class="mt-1 flex gap-1">
+            <span class="h-3.5 w-8 rounded-full" :style="{ background: themes[item].accent }" />
+            <span class="h-3.5 w-5 rounded-full" :style="{ background: themes[item].contrast }" />
+          </span>
         </span>
       </span>
       <span class="mt-2 block text-xs font-medium" :style="{ color: themes[item].accent }">

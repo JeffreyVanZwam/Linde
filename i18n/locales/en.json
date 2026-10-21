@@ -13,6 +13,11 @@
   "pwa": { "install": "Install app" },
   "nav": {
     "menu": "Menu",
+    "dashboard": "Dashboard",
+    "overview": "Overview",
+    "groupBrand": "Brand",
+    "groupCreate": "Create",
+    "groupSystem": "System",
     "home": "Home",
     "brain": "Brain",
     "files": "Files",
@@ -76,6 +81,7 @@
     "rootOption": "Top level"
   },
   "home": {
+    "eyebrow": "Welcome back,",
     "welcome": "Hello {name}",
     "lead": "Your brand, schedule and open conversations in one place.",
     "upcoming": "Scheduled posts",

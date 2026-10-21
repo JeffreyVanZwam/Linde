@@ -54,31 +54,31 @@ async function approveAll() {
   <div class="space-y-6">
     <AppBack to="/outreach" />
     <div>
-      <h1 class="font-serif text-5xl">
+      <h1 class="font-display font-semibold tracking-tight text-5xl">
         {{ data.campaign.name }}
       </h1>
-      <p class="mt-3 max-w-2xl text-sm text-stone-600">
+      <p class="mt-3 max-w-2xl text-sm text-muted">
         {{ data.campaign.audience }} · {{ data.campaign.offer }}
       </p>
     </div>
     <UiCard>
-      <h2 class="font-serif text-2xl">
+      <h2 class="font-display font-semibold tracking-tight text-2xl">
         {{ t('outreach.steps') }}
       </h2>
       <article v-for="step in data.steps" :key="step.id" class="mt-4 border-t border-line pt-4">
-        <p class="text-xs text-stone-400">
+        <p class="text-xs text-muted">
           +{{ step.delayHours }}u
         </p>
         <p class="font-medium">
           {{ step.subject }}
         </p>
-        <p class="whitespace-pre-wrap text-sm text-stone-600">
+        <p class="whitespace-pre-wrap text-sm text-muted">
           {{ step.body }}
         </p>
       </article>
     </UiCard>
     <UiCard>
-      <h2 class="font-serif text-2xl">
+      <h2 class="font-display font-semibold tracking-tight text-2xl">
         {{ t('outreach.recipients') }}
       </h2>
       <form class="mt-3 space-y-3" @submit.prevent="addRecipients">
@@ -100,13 +100,13 @@ async function approveAll() {
       </UiButton>
     </div>
     <UiCard v-for="message in data.messages" :key="message.id">
-      <p class="text-xs uppercase text-stone-400">
+      <p class="text-xs uppercase text-muted">
         {{ message.status }}
       </p>
       <p class="font-medium">
         {{ message.subject }}
       </p>
-      <p class="whitespace-pre-wrap text-sm text-stone-600">
+      <p class="whitespace-pre-wrap text-sm text-muted">
         {{ message.body }}
       </p>
       <div class="mt-3 flex flex-wrap gap-2">

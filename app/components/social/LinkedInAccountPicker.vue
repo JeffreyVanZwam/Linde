@@ -30,24 +30,24 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 
 <template>
   <motion.div
-    class="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center"
+    class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
     role="presentation"
     :initial="{ opacity: 0 }"
     :animate="{ opacity: 1 }"
     @click.self="busy ? undefined : emit('cancel')"
   >
     <motion.div
-      class="w-full max-w-md rounded-3xl border border-line bg-white p-6 shadow-lg"
+      class="w-full max-w-md rounded-3xl border border-line bg-surface p-6 shadow-lg"
       role="dialog"
       aria-modal="true"
       aria-labelledby="linkedin-choice-title"
       :initial="{ y: 16, opacity: 0 }"
       :animate="{ y: 0, opacity: 1 }"
     >
-      <h2 id="linkedin-choice-title" class="font-serif text-3xl">
+      <h2 id="linkedin-choice-title" class="font-display font-semibold tracking-tight text-3xl">
         {{ t('social.linkedinChooseTitle') }}
       </h2>
-      <p class="mt-2 text-sm text-stone-500">
+      <p class="mt-2 text-sm text-muted">
         {{ t('social.linkedinChooseLead') }}
       </p>
       <div class="mt-5 space-y-2">
@@ -58,7 +58,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
         >
           <input v-model="selected" class="mt-1" type="radio" name="linkedin-account" :value="option.externalId">
           <span>
-            <span class="block text-xs uppercase tracking-wide text-stone-400">
+            <span class="block text-xs uppercase tracking-wide text-muted">
               {{ kind(option) }}
             </span>
             <span class="block font-medium">{{ option.displayName }}</span>

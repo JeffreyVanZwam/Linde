@@ -55,10 +55,10 @@ async function test() {
 
 <template>
   <section class="space-y-3">
-    <h2 class="font-serif text-3xl">
+    <h2 class="font-display font-semibold tracking-tight text-3xl">
       {{ t('settings.storage') }}
     </h2>
-    <p class="text-sm text-stone-600">
+    <p class="text-sm text-muted">
       {{ t('settings.storageLead') }}
     </p>
     <form class="space-y-4" @submit.prevent="save">
@@ -82,7 +82,7 @@ async function test() {
           <input v-model="form.forcePathStyle" type="checkbox" :disabled="!admin"> {{ t('settings.pathStyle') }}
         </label>
       </div>
-      <p v-if="!admin" class="text-sm text-stone-500">
+      <p v-if="!admin" class="text-sm text-muted">
         {{ t('settings.adminOnly') }}
       </p>
       <UiAlert :message="error" />

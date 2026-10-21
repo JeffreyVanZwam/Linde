@@ -1,27 +1,69 @@
 <script setup lang="ts">
-import { motion } from 'motion-v'
-
 const { t } = useI18n()
 const localePath = useLocalePath()
 const open = useState('nav-open', () => false)
 const route = useRoute()
 
-const items = computed(() => [
-  { to: '/', label: t('nav.home'), icon: 'solar:home-2-bold-duotone' },
-  { to: '/brain', label: t('nav.brain'), icon: 'solar:brain-bold-duotone' },
-  { to: '/files', label: t('nav.files'), icon: 'solar:folder-bold-duotone' },
-  { to: '/strategy', label: t('nav.strategy'), icon: 'solar:chat-round-dots-bold-duotone' },
-  { to: '/social', label: t('nav.social'), icon: 'solar:share-circle-bold-duotone' },
-  { to: '/seo', label: t('nav.seo'), icon: 'solar:document-text-bold-duotone' },
-  { to: '/outreach', label: t('nav.outreach'), icon: 'solar:letter-bold-duotone' },
-  { to: '/settings', label: t('nav.settings'), icon: 'solar:settings-bold-duotone' },
-])
+const groups = computed(() => {
+  const rows = [
+    {
+      label: t('nav.overview'),
+      items: [
+        { to: '/', label: t('nav.home'), icon: 'solar:home-2-bold-duotone' },
+      ],
+    },
+    {
+      label: t('nav.groupBrand'),
+      items: [
+        { to: '/brain', label: t('nav.brain'), icon: 'solar:brain-bold-duotone' },
+        { to: '/files', label: t('nav.files'), icon: 'solar:folder-bold-duotone' },
+      ],
+    },
+    {
+      label: t('nav.groupCreate'),
+      items: [
+        { to: '/strategy', label: t('nav.strategy'), icon: 'solar:chat-round-dots-bold-duotone' },
+        { to: '/social', label: t('nav.social'), icon: 'solar:share-circle-bold-duotone' },
+        { to: '/seo', label: t('nav.seo'), icon: 'solar:document-text-bold-duotone' },
+        { to: '/outreach', label: t('nav.outreach'), icon: 'solar:letter-bold-duotone' },
+      ],
+    },
+    {
+      label: t('nav.groupSystem'),
+      items: [
+        { to: '/settings', label: t('nav.settings'), icon: 'solar:settings-bold-duotone' },
+      ],
+    },
+  ]
+  let delay = 40
+  return rows.map(group => ({
+    ...group,
+    items: group.items.map((item) => {
+      delay += 36
+      return { ...item, delay }
+    }),
+  }))
+})
+
+function bare(path: string) {
+  return path.replace(/^\/en(?=\/|$)/, '') || '/'
+}
 
 function active(path: string) {
-  const bare = route.path.replace(/^\/en(?=\/|$)/, '') || '/'
-  if (path === '/') return bare === '/'
-  return bare === path || bare.startsWith(`${path}/`)
+  const current = bare(route.path)
+  if (path === '/') return current === '/'
+  return current === path || current.startsWith(`${path}/`)
 }
+
+function onKey(event: KeyboardEvent) {
+  if (event.key === 'Escape') open.value = false
+}
+
+onMounted(() => window.addEventListener('keydown', onKey))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+watch(() => route.fullPath, () => {
+  open.value = false
+})
 
 async function logout() {
   await $fetch('/api/auth/logout', { method: 'POST' })
@@ -34,37 +76,49 @@ async function logout() {
 </script>
 
 <template>
-  <button class="nav-surface fixed left-3 top-3 z-40 flex size-11 items-center justify-center rounded-full bg-accent text-white lg:hidden" type="button" :aria-label="t('nav.menu')" @click="open = !open">
-    <Icon name="solar:hamburger-menu-linear" class="size-5" />
-  </button>
-  <div v-if="open" class="fixed inset-0 z-30 bg-ink/40 lg:hidden" @click="open = false" />
-  <motion.aside
-    class="nav-surface fixed inset-y-0 left-0 z-40 flex w-[min(18rem,calc(100vw-3rem))] flex-col bg-accent px-4 py-5 text-white sm:px-5 sm:py-6"
-    :class="open ? 'flex' : 'hidden lg:flex'"
-    :initial="{ x: -12, opacity: 0 }"
-    :animate="{ x: 0, opacity: 1 }"
+  <div v-if="open" class="fixed inset-0 z-30 bg-black/50 backdrop-blur-[2px] lg:hidden" @click="open = false" />
+  <aside
+    class="z-40 flex w-[min(17rem,calc(100vw-1.5rem))] shrink-0 flex-col bg-sidebar px-4 py-5 text-sidebar-ink sm:w-64"
+    :class="open
+      ? 'fixed bottom-2 left-2 top-2 rounded-[1.4rem] shadow-2xl lg:static lg:inset-auto lg:rounded-none lg:shadow-none'
+      : 'max-lg:hidden'"
   >
-    <NuxtLink :to="localePath('/')" class="flex items-center gap-3" @click="open = false">
-      <AppMark inverted class="size-9 text-accent" />
-      <span class="font-serif text-2xl">{{ t('app.name') }}</span>
+    <NuxtLink :to="localePath('/')" class="flex items-center gap-3 px-1" @click="open = false">
+      <span class="flex size-11 items-center justify-center rounded-full ring-1 ring-white/30">
+        <AppMark class="size-8 text-sidebar-ink" />
+      </span>
+      <span>
+        <span class="block font-display text-lg font-semibold tracking-tight">{{ t('app.name') }}</span>
+        <span class="block text-xs text-sidebar-muted">{{ t('nav.dashboard') }}</span>
+      </span>
     </NuxtLink>
-    <nav class="mt-8 flex flex-1 flex-col gap-1 sm:mt-10">
-      <NuxtLink
-        v-for="item in items"
-        :key="item.to"
-        :to="localePath(item.to)"
-        class="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm"
-        :class="active(item.to) ? 'bg-white text-ink' : 'hover:bg-white/10'"
-        @click="open = false"
-      >
-        <Icon :name="item.icon" class="size-5" />
-        {{ item.label }}
-      </NuxtLink>
+    <nav class="mt-8 flex flex-1 flex-col gap-6">
+      <div v-for="group in groups" :key="group.label">
+        <p class="px-3 text-xs font-medium text-sidebar-muted">
+          {{ group.label }}
+        </p>
+        <div class="mt-1.5 flex flex-col gap-0.5">
+          <NuxtLink
+            v-for="item in group.items"
+            :key="item.to"
+            :to="localePath(item.to)"
+            class="nav-link flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm transition duration-200"
+            :class="active(item.to) ? 'bg-sidebar-active text-sidebar-ink' : 'text-sidebar-muted hover:translate-x-0.5 hover:bg-white/10 hover:text-sidebar-ink'"
+            :style="{ '--d': `${item.delay}ms` }"
+            @click="open = false"
+          >
+            <Icon :name="item.icon" class="size-5 shrink-0" />
+            {{ item.label }}
+          </NuxtLink>
+        </div>
+      </div>
     </nav>
-    <AppInstallPrompt />
-    <button type="button" class="mt-2 flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm hover:bg-white/10" @click="logout">
-      <Icon name="solar:logout-2-bold-duotone" class="size-5" />
-      {{ t('nav.logout') }}
-    </button>
-  </motion.aside>
+    <div class="mt-4 space-y-1 border-t border-white/10 pt-3">
+      <AppInstallPrompt />
+      <button type="button" class="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm text-sidebar-muted transition hover:bg-white/10 hover:text-sidebar-ink" @click="logout">
+        <Icon name="solar:logout-2-bold-duotone" class="size-5" />
+        {{ t('nav.logout') }}
+      </button>
+    </div>
+  </aside>
 </template>

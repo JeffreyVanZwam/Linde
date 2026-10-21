@@ -99,10 +99,10 @@ async function save() {
 <template>
   <div class="space-y-6">
     <div>
-      <h1 class="font-serif text-5xl">
+      <h1 class="font-display font-semibold tracking-tight text-5xl">
         {{ t('onboarding.title') }}
       </h1>
-      <p class="mt-3 max-w-xl text-stone-600">
+      <p class="mt-3 max-w-xl text-muted">
         {{ t('onboarding.lead') }}
       </p>
     </div>
@@ -116,7 +116,7 @@ async function save() {
     </UiCard>
     <UiAlert :message="error" />
     <form v-if="brand" class="space-y-4" @submit.prevent="save">
-      <h2 class="font-serif text-3xl">
+      <h2 class="font-display font-semibold tracking-tight text-3xl">
         {{ t('onboarding.review') }}
       </h2>
       <div v-if="brand.logoMediaId || brand.imageIds.length" class="flex gap-3 overflow-x-auto">

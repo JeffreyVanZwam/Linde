@@ -13,6 +13,11 @@
   "pwa": { "install": "Installeer app" },
   "nav": {
     "menu": "Menu",
+    "dashboard": "Dashboard",
+    "overview": "Overzicht",
+    "groupBrand": "Merk",
+    "groupCreate": "Maken",
+    "groupSystem": "Systeem",
     "home": "Home",
     "brain": "Brain",
     "files": "Bestanden",
@@ -76,6 +81,7 @@
     "rootOption": "Hoofdmap"
   },
   "home": {
+    "eyebrow": "Welkom terug,",
     "welcome": "Hallo {name}",
     "lead": "Je merk, planning en lopende gesprekken op één plek.",
     "upcoming": "Ingeplande posts",

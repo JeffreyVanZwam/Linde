@@ -12,10 +12,10 @@ const props = withDefaults(defineProps<{
 })
 
 const classes = computed(() => {
-  const base = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50'
-  if (props.variant === 'ghost') return `${base} border border-line bg-white hover:bg-stone-50`
+  const base = 'inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50'
+  if (props.variant === 'ghost') return `${base} border border-line bg-surface text-ink hover:bg-soft`
   if (props.variant === 'danger') return `${base} bg-red-700 text-white hover:bg-red-800`
-  return `${base} bg-accent text-white hover:bg-accent-2`
+  return `${base} bg-cta text-cta-ink`
 })
 </script>
 

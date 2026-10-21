@@ -4,7 +4,7 @@ defineProps<{ label: string }>()
 
 <template>
   <label class="block space-y-1.5 text-sm">
-    <span class="font-medium text-stone-700">{{ label }}</span>
+    <span class="font-medium text-ink">{{ label }}</span>
     <slot />
   </label>
 </template>

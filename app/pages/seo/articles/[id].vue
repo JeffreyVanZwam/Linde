@@ -25,21 +25,21 @@ async function copy() {
 <template>
   <article class="mx-auto max-w-3xl space-y-6">
     <AppBack to="/seo" />
-    <p class="text-xs uppercase tracking-[0.2em] text-stone-400">
+    <p class="text-xs uppercase tracking-[0.2em] text-muted">
       {{ draft.slug }}
     </p>
-    <h1 class="font-serif text-5xl">
+    <h1 class="font-display font-semibold tracking-tight text-5xl">
       {{ draft.title }}
     </h1>
-    <p class="text-stone-600">
+    <p class="text-muted">
       {{ draft.metaTitle }} — {{ draft.metaDescription }}
     </p>
     <UiButton variant="ghost" @click="copy">
       {{ copied ? t('common.save') : t('seo.copy') }}
     </UiButton>
-    <pre class="whitespace-pre-wrap rounded-3xl bg-white p-6 text-sm leading-6">{{ draft.markdown }}</pre>
+    <pre class="whitespace-pre-wrap rounded-3xl bg-surface p-6 text-sm leading-6">{{ draft.markdown }}</pre>
     <UiCard>
-      <h2 class="font-serif text-2xl">
+      <h2 class="font-display font-semibold tracking-tight text-2xl">
         {{ t('seo.keywords') }}
       </h2>
       <p class="mt-2 text-sm">
@@ -47,20 +47,20 @@ async function copy() {
       </p>
     </UiCard>
     <UiCard>
-      <h2 class="font-serif text-2xl">
+      <h2 class="font-display font-semibold tracking-tight text-2xl">
         {{ t('seo.faq') }}
       </h2>
       <div v-for="item in draft.faq" :key="item.question" class="mt-3">
         <p class="font-medium">
           {{ item.question }}
         </p>
-        <p class="text-sm text-stone-600">
+        <p class="text-sm text-muted">
           {{ item.answer }}
         </p>
       </div>
     </UiCard>
     <UiCard>
-      <h2 class="font-serif text-2xl">
+      <h2 class="font-display font-semibold tracking-tight text-2xl">
         {{ t('seo.geo') }}
       </h2>
       <p class="mt-2 whitespace-pre-wrap text-sm">
@@ -70,6 +70,6 @@ async function copy() {
         {{ link.title }}
       </a>
     </UiCard>
-    <pre class="overflow-auto rounded-3xl bg-ink p-4 text-xs text-stone-100">{{ JSON.stringify(draft.jsonLd, null, 2) }}</pre>
+    <pre class="overflow-auto rounded-3xl bg-sidebar p-4 text-xs text-sidebar-ink">{{ JSON.stringify(draft.jsonLd, null, 2) }}</pre>
   </article>
 </template>

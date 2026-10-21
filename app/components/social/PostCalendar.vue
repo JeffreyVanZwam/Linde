@@ -93,26 +93,26 @@ const weekdays = computed(() => {
         :key="item"
         type="button"
         class="min-h-11 rounded-full px-3 py-2 text-xs"
-        :class="platform === item ? 'bg-ink text-white' : 'bg-white text-stone-600'"
+        :class="platform === item ? 'bg-cta text-cta-ink' : 'bg-soft text-muted'"
         @click="platform = item"
       >
         {{ item === 'all' ? t('social.all') : item }}
       </button>
     </div>
-    <div v-if="mode === 'month'" class="grid grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wide text-stone-400">
+    <div v-if="mode === 'month'" class="grid grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wide text-muted">
       <span v-for="day in weekdays" :key="day">{{ day }}</span>
     </div>
     <div class="grid gap-1 sm:gap-2" :class="mode === 'week' ? 'grid-cols-1 sm:grid-cols-7' : 'grid-cols-7'">
       <div
         v-for="day in days"
         :key="day.key"
-        class="rounded-2xl border border-line bg-white p-1.5 sm:p-2"
+        class="rounded-2xl border border-line bg-surface p-1.5 sm:p-2"
         :class="[
           day.inMonth || mode === 'week' ? '' : 'opacity-40',
           mode === 'week' ? 'min-h-24' : 'min-h-14 sm:min-h-28',
         ]"
       >
-        <p class="text-xs text-stone-400">
+        <p class="text-xs text-muted">
           {{ day.label }}
         </p>
         <NuxtLink

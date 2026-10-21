@@ -138,11 +138,11 @@ const suggestions = computed(() => {
       </UiButton>
     </div>
     <div class="flex-1 space-y-4">
-      <p v-if="!history.length && !pending" class="text-sm text-stone-500">
+      <p v-if="!history.length && !pending" class="text-sm text-muted">
         {{ t('strategy.empty') }}
       </p>
-      <article v-for="message in history" :key="message.id" class="max-w-3xl">
-        <p class="text-xs uppercase tracking-wide text-stone-400">
+      <article v-for="message in history" :key="message.id" class="msg-in max-w-3xl">
+        <p class="text-xs uppercase tracking-wide text-muted">
           {{ message.role === 'user' ? t('chat.you') : t('chat.assistant') }}
         </p>
         <p class="mt-1 whitespace-pre-wrap text-sm leading-6">
@@ -150,7 +150,7 @@ const suggestions = computed(() => {
         </p>
       </article>
       <article v-if="pending" class="max-w-3xl">
-        <p class="text-xs uppercase tracking-wide text-stone-400">
+        <p class="text-xs uppercase tracking-wide text-muted">
           {{ t('chat.assistant') }}
         </p>
         <p class="mt-1 whitespace-pre-wrap text-sm leading-6">
@@ -164,7 +164,7 @@ const suggestions = computed(() => {
         v-for="suggestion in suggestions"
         :key="suggestion"
         type="button"
-        class="min-h-11 rounded-full bg-stone-100 px-3 py-2 text-xs text-stone-600"
+        class="min-h-11 rounded-full bg-soft px-3 py-2 text-xs text-muted transition duration-200 hover:-translate-y-0.5 hover:text-ink"
         @click="draft = suggestion"
       >
         {{ suggestion }}

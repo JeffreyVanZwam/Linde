@@ -158,14 +158,14 @@ onBeforeUnmount(() => {
 <template>
   <div class="space-y-6">
     <div>
-      <h1 class="font-serif text-5xl">
+      <h1 class="font-display font-semibold tracking-tight text-5xl">
         {{ t('files.title') }}
       </h1>
-      <p class="mt-3 max-w-2xl text-stone-600">
+      <p class="mt-3 max-w-2xl text-muted">
         {{ t('files.lead') }}
       </p>
     </div>
-    <nav class="flex flex-wrap items-center gap-2 text-sm text-stone-600">
+    <nav class="flex flex-wrap items-center gap-2 text-sm text-muted">
       <button type="button" class="font-medium text-accent" @click="openFolder()">
         {{ t('files.root') }}
       </button>
@@ -211,7 +211,7 @@ onBeforeUnmount(() => {
     </form>
     <form v-if="moving" class="flex flex-wrap items-end gap-3" @submit.prevent="saveMove">
       <UiField :label="t('files.move')" class="min-w-56 flex-1">
-        <select v-model="moving.folderId" class="w-full rounded-2xl border border-line bg-white px-3 py-3 text-sm">
+        <select v-model="moving.folderId" class="w-full rounded-2xl border border-line bg-surface px-3 py-3 text-sm">
           <option value="">
             {{ t('files.rootOption') }}
           </option>
@@ -227,28 +227,28 @@ onBeforeUnmount(() => {
         {{ t('files.cancel') }}
       </UiButton>
     </form>
-    <div v-if="!(data?.folders.length || data?.files.length)" class="rounded-3xl border border-dashed border-line px-4 py-10 text-center text-stone-500">
+    <div v-if="!(data?.folders.length || data?.files.length)" class="rounded-3xl border border-dashed border-line px-4 py-10 text-center text-muted">
       {{ t('files.empty') }}
     </div>
     <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       <motion.article
         v-for="item in data?.folders || []"
         :key="item.id"
-        class="flex flex-col rounded-3xl border border-line bg-white p-3"
+        class="flex flex-col rounded-3xl border border-line bg-surface p-3 transition duration-200 hover:-translate-y-0.5"
         :initial="{ opacity: 0, y: 6 }"
         :animate="{ opacity: 1, y: 0 }"
       >
         <button type="button" class="flex flex-1 flex-col gap-3 text-left" @click="openFolder(item.id)">
-          <span class="flex aspect-square items-center justify-center rounded-2xl bg-stone-100">
+          <span class="flex aspect-square items-center justify-center rounded-2xl bg-soft">
             <Icon name="solar:folder-bold-duotone" class="!size-16 text-accent" />
           </span>
           <span class="truncate text-sm font-medium">{{ item.name }}</span>
         </button>
         <div class="mt-3 flex gap-2 text-xs">
-          <button type="button" class="text-stone-500" @click="editing = { id: item.id, kind: 'folder', name: item.name }">
+          <button type="button" class="text-muted" @click="editing = { id: item.id, kind: 'folder', name: item.name }">
             {{ t('files.rename') }}
           </button>
-          <button type="button" class="text-stone-500" @click="moving = { id: item.id, kind: 'folder', folderId: '' }">
+          <button type="button" class="text-muted" @click="moving = { id: item.id, kind: 'folder', folderId: '' }">
             {{ t('files.move') }}
           </button>
           <button type="button" class="text-red-700" @click="removing = { id: item.id, kind: 'folder' }">
@@ -259,25 +259,25 @@ onBeforeUnmount(() => {
       <motion.article
         v-for="file in data?.files || []"
         :key="file.id"
-        class="flex flex-col rounded-3xl border border-line bg-white p-3"
+        class="flex flex-col rounded-3xl border border-line bg-surface p-3 transition duration-200 hover:-translate-y-0.5"
         :initial="{ opacity: 0, y: 6 }"
         :animate="{ opacity: 1, y: 0 }"
       >
         <a :href="`/api/media/${file.id}`" class="flex flex-1 flex-col gap-3" target="_blank">
           <img v-if="file.image" :src="`/api/media/${file.id}?thumb=200x200`" alt="" class="aspect-square w-full rounded-2xl object-cover">
-          <span v-else class="flex aspect-square items-center justify-center rounded-2xl bg-stone-100">
+          <span v-else class="flex aspect-square items-center justify-center rounded-2xl bg-soft">
             <Icon :name="fileIcon(file.mime)" class="!size-16 text-accent" />
           </span>
           <span class="truncate text-sm font-medium">{{ file.name }}</span>
-          <span v-if="file.source === 'brand' || file.source === 'brain'" class="text-xs uppercase tracking-[0.16em] text-stone-400">
+          <span v-if="file.source === 'brand' || file.source === 'brain'" class="text-xs uppercase tracking-[0.16em] text-muted">
             {{ t('files.brain') }}
           </span>
         </a>
         <div class="mt-3 flex gap-2 text-xs">
-          <button type="button" class="text-stone-500" @click="editing = { id: file.id, kind: 'file', name: file.name }">
+          <button type="button" class="text-muted" @click="editing = { id: file.id, kind: 'file', name: file.name }">
             {{ t('files.rename') }}
           </button>
-          <button type="button" class="text-stone-500" @click="moving = { id: file.id, kind: 'file', folderId: folder }">
+          <button type="button" class="text-muted" @click="moving = { id: file.id, kind: 'file', folderId: folder }">
             {{ t('files.move') }}
           </button>
           <button type="button" class="text-red-700" @click="removing = { id: file.id, kind: 'file' }">

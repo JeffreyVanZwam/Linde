@@ -52,7 +52,7 @@ async function save() {
   <div class="mx-auto max-w-2xl space-y-4">
     <AppBack to="/outreach" />
     <form class="space-y-4" @submit.prevent="save">
-    <h1 class="font-serif text-5xl">
+    <h1 class="font-display font-semibold tracking-tight text-5xl">
       {{ t('outreach.smtp') }}
     </h1>
     <UiField :label="t('outreach.host')"><UiInput v-model="form.host" required /></UiField>
@@ -64,7 +64,7 @@ async function save() {
     <UiField :label="t('outreach.password')"><UiInput v-model="form.password" type="password" /></UiField>
     <UiField :label="t('outreach.fromEmail')"><UiInput v-model="form.fromEmail" type="email" required /></UiField>
     <UiField :label="t('outreach.fromName')"><UiInput v-model="form.fromName" /></UiField>
-    <h2 class="pt-4 font-serif text-2xl">
+    <h2 class="pt-4 font-display font-semibold tracking-tight text-2xl">
       {{ t('outreach.imap') }}
     </h2>
     <UiField :label="t('outreach.host')"><UiInput v-model="form.imapHost" /></UiField>

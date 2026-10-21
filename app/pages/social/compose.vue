@@ -109,10 +109,10 @@ async function retry() {
   <div class="mx-auto max-w-3xl space-y-5">
     <AppBack to="/social" />
     <form class="space-y-5" @submit.prevent="save('draft')">
-    <h1 class="font-serif text-5xl">
+    <h1 class="font-display font-semibold tracking-tight text-5xl">
       {{ t('social.compose') }}
     </h1>
-    <p class="text-sm text-stone-500">
+    <p class="text-sm text-muted">
       {{ t('social.videoHint') }}
     </p>
     <UiField :label="t('social.body')">
@@ -122,7 +122,7 @@ async function retry() {
       <p class="text-sm font-medium">
         {{ t('social.platforms') }}
       </p>
-      <label v-for="account in accounts" :key="account.id" class="block rounded-3xl border border-line bg-white p-4">
+      <label v-for="account in accounts" :key="account.id" class="block rounded-3xl border border-line bg-surface p-4">
         <span class="flex items-center gap-2 text-sm">
           <input v-model="selected" type="checkbox" :value="account.id">
           {{ accountLabel(account) }}

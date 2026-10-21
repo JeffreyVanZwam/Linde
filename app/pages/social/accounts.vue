@@ -165,10 +165,10 @@ async function remove(id: string) {
   <div class="space-y-6">
     <AppBack to="/social" />
     <div>
-      <h1 class="font-serif text-5xl">
+      <h1 class="font-display font-semibold tracking-tight text-5xl">
         {{ t('social.accounts') }}
       </h1>
-      <p class="mt-3 max-w-2xl text-stone-600">
+      <p class="mt-3 max-w-2xl text-muted">
         {{ t('social.appLead') }}
       </p>
     </div>
@@ -182,10 +182,10 @@ async function remove(id: string) {
             {{ t('social.connect') }}
           </UiButton>
         </div>
-        <p v-if="!app.configured" class="mt-2 text-sm text-stone-500">
+        <p v-if="!app.configured" class="mt-2 text-sm text-muted">
           {{ t('social.setupApp') }}
         </p>
-        <button type="button" class="mt-3 text-sm text-stone-500 underline" @click="editorOpen[app.provider] = !editorOpen[app.provider]">
+        <button type="button" class="mt-3 text-sm text-muted underline" @click="editorOpen[app.provider] = !editorOpen[app.provider]">
           {{ t('social.editApp') }}
         </button>
         <form v-if="editorOpen[app.provider] && drafts[app.provider]" class="mt-3 space-y-3" @submit.prevent="saveApp(app.provider)">
@@ -195,11 +195,11 @@ async function remove(id: string) {
           <UiField :label="t('social.clientSecret')">
             <UiInput v-model="draftFor(app.provider).clientSecret" type="password" autocomplete="new-password" />
           </UiField>
-          <p class="text-xs text-stone-500">
+          <p class="text-xs text-muted">
             {{ t('social.clientSecretHint') }}
           </p>
           <UiField v-if="app.provider === 'tiktok'" :label="t('social.privacy')">
-            <select v-model="draftFor(app.provider).privacy" class="w-full rounded-2xl border border-line bg-white px-3 py-2.5 text-sm outline-none ring-accent focus:ring-2">
+            <select v-model="draftFor(app.provider).privacy" class="w-full rounded-2xl border border-line bg-surface px-3 py-2.5 text-sm outline-none ring-accent focus:ring-2">
               <option value="SELF_ONLY">
                 {{ t('social.privacySelf') }}
               </option>
@@ -214,9 +214,9 @@ async function remove(id: string) {
               </option>
             </select>
           </UiField>
-          <p class="text-xs text-stone-500">
+          <p class="text-xs text-muted">
             {{ t('social.redirectUri') }}
-            <span class="mt-1 block break-all font-mono text-stone-700">{{ app.redirectUri }}</span>
+            <span class="mt-1 block break-all font-mono text-ink">{{ app.redirectUri }}</span>
           </p>
           <UiButton type="submit" :disabled="saving === app.provider">
             {{ t('common.save') }}
@@ -230,16 +230,16 @@ async function remove(id: string) {
       </UiButton>
     </div>
     <UiAlert :message="error || notice" />
-    <p v-if="!accounts.length" class="text-sm text-stone-500">
+    <p v-if="!accounts.length" class="text-sm text-muted">
       {{ t('social.emptyAccounts') }}
     </p>
     <UiCard v-for="account in accounts" :key="account.id" class="flex items-center justify-between">
       <div>
-        <p class="text-xs uppercase tracking-wide text-stone-400">
+        <p class="text-xs uppercase tracking-wide text-muted">
           {{ account.platform }}
         </p>
         <p>{{ account.displayName }}</p>
-        <p v-if="accountKind(account)" class="text-xs text-stone-500">
+        <p v-if="accountKind(account)" class="text-xs text-muted">
           {{ accountKind(account) }}
         </p>
       </div>

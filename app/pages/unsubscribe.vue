@@ -20,10 +20,10 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-3">
-    <h1 class="font-serif text-4xl">
+    <h1 class="font-display font-semibold tracking-tight text-4xl">
       {{ ok ? t('unsubscribe.title') : t('common.error') }}
     </h1>
-    <p class="text-sm text-stone-600">
+    <p class="text-sm text-muted">
       {{ ok ? t('unsubscribe.lead') : error }}
     </p>
   </div>

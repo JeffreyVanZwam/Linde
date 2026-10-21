@@ -14,7 +14,7 @@ const posts = await api<Array<{
 <template>
   <div class="space-y-6">
     <AppBack to="/social" />
-    <h1 class="font-serif text-5xl">
+    <h1 class="font-display font-semibold tracking-tight text-5xl">
       {{ t('social.calendar') }}
     </h1>
     <PostCalendar :posts="posts" />

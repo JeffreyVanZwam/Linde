@@ -32,10 +32,10 @@ async function submit() {
 <template>
   <form class="space-y-5" @submit.prevent="submit">
     <div>
-      <p class="font-serif text-4xl">
+      <p class="font-display font-semibold tracking-tight text-4xl">
         {{ t('auth.registerTitle') }}
       </p>
-      <p class="mt-2 text-sm text-stone-600">
+      <p class="mt-2 text-sm text-muted">
         {{ t('auth.registerLead') }}
       </p>
     </div>
@@ -52,7 +52,7 @@ async function submit() {
     <UiButton type="submit" :disabled="busy">
       {{ t('auth.register') }}
     </UiButton>
-    <p class="text-sm text-stone-600">
+    <p class="text-sm text-muted">
       {{ t('auth.hasAccount') }}
       <NuxtLink :to="localePath('/login')" class="font-medium text-accent">
         {{ t('auth.login') }}

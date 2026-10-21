@@ -46,7 +46,7 @@ async function remove(chat: ChatSummary) {
 
 <template>
   <div>
-    <p v-if="!visible.length" class="text-sm text-stone-500">
+    <p v-if="!visible.length" class="text-sm text-muted">
       {{ empty || t('chat.empty') }}
     </p>
     <UiAlert :class="error ? 'mb-3' : undefined" :message="error" />
@@ -54,7 +54,7 @@ async function remove(chat: ChatSummary) {
       <div
         v-for="chat in visible"
         :key="chat.id"
-        :class="plain ? 'flex items-center gap-3 py-3' : 'flex items-center gap-3 rounded-3xl border border-line bg-white px-5 py-3'"
+        :class="plain ? 'flex items-center gap-3 py-3' : 'flex items-center gap-3 rounded-[1.25rem] border border-line bg-surface px-5 py-3 transition duration-200 hover:-translate-y-0.5'"
       >
         <NuxtLink :to="path(chat)" class="min-w-0 flex-1 text-sm">
           {{ chat.title }}

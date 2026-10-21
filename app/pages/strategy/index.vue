@@ -5,12 +5,12 @@ const localePath = useLocalePath()
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-end justify-between gap-4">
+    <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 class="font-serif text-5xl">
+        <h1 class="font-display text-5xl font-semibold tracking-tight">
           {{ t('strategy.title') }}
         </h1>
-        <p class="mt-3 max-w-2xl text-stone-600">
+        <p class="mt-3 max-w-2xl text-muted">
           {{ t('strategy.lead') }}
         </p>
       </div>

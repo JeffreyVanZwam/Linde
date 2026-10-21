@@ -34,7 +34,7 @@ async function refresh() {
   <div class="mx-auto max-w-2xl space-y-4">
     <AppBack to="/seo" />
     <form class="space-y-4" @submit.prevent="save">
-    <h1 class="font-serif text-5xl">
+    <h1 class="font-display font-semibold tracking-tight text-5xl">
       {{ t('seo.settings') }}
     </h1>
     <UiField :label="t('seo.url')">

@@ -51,17 +51,17 @@ async function save() {
 </script>
 
 <template>
-  <form class="mx-auto max-w-3xl space-y-5" @submit.prevent="save">
-    <div>
-      <h1 class="font-serif text-5xl">
+  <form class="grid gap-5 lg:grid-cols-2" @submit.prevent="save">
+    <div class="lg:col-span-2">
+      <h1 class="font-display text-5xl font-semibold tracking-tight">
         {{ t('brain.title') }}
       </h1>
-      <p class="mt-3 text-stone-600">
+      <p class="mt-3 text-muted">
         {{ t('brain.lead') }}
         <NuxtLink :to="localePath('/files')" class="font-medium text-accent">{{ t('brain.files') }}</NuxtLink>
       </p>
     </div>
-    <div v-if="logo || images.length" class="flex gap-3">
+    <div v-if="logo || images.length" class="flex gap-3 lg:col-span-2">
       <img v-if="logo" :src="`/api/media/${logo}`" alt="" class="h-24 w-24 rounded-3xl object-cover">
       <img v-for="image in images" :key="image" :src="`/api/media/${image}`" alt="" class="h-24 w-24 rounded-3xl object-cover">
     </div>
@@ -71,16 +71,16 @@ async function save() {
     <UiField :label="t('brain.company')">
       <UiInput v-model="brand.companyName" />
     </UiField>
-    <UiField :label="t('brain.who')">
+    <UiField class="lg:col-span-2" :label="t('brain.who')">
       <UiTextarea v-model="brand.whoTheyAre" />
     </UiField>
-    <UiField :label="t('brain.what')">
+    <UiField class="lg:col-span-2" :label="t('brain.what')">
       <UiTextarea v-model="brand.whatTheyDo" />
     </UiField>
-    <UiField :label="t('brain.audience')">
+    <UiField class="lg:col-span-2" :label="t('brain.audience')">
       <UiTextarea v-model="brand.audience" />
     </UiField>
-    <UiField :label="t('brain.tone')">
+    <UiField class="lg:col-span-2" :label="t('brain.tone')">
       <UiTextarea v-model="brand.toneOfVoice" />
     </UiField>
     <UiField :label="t('brain.colors')">
@@ -89,12 +89,14 @@ async function save() {
     <UiField :label="t('brain.fonts')">
       <UiInput v-model="brand.fonts" />
     </UiField>
-    <UiAlert :message="error" />
-    <p v-if="message" class="text-sm text-accent">
-      {{ message }}
-    </p>
-    <UiButton type="submit">
-      {{ t('brain.save') }}
-    </UiButton>
+    <div class="flex flex-wrap items-center gap-3 lg:col-span-2">
+      <UiButton type="submit">
+        {{ t('brain.save') }}
+      </UiButton>
+      <p v-if="message" class="text-sm text-accent">
+        {{ message }}
+      </p>
+    </div>
+    <UiAlert class="lg:col-span-2" :message="error" />
   </form>
 </template>
