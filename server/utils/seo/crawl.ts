@@ -1,8 +1,5 @@
 import * as cheerio from 'cheerio'
-import { eq } from 'drizzle-orm'
-import { useDb } from '../../db/client'
-import { siteArticles } from '../../db/schema'
-import { id } from '../http'
+import { replaceSiteArticles } from '../store'
 
 export async function refreshArticles(userId: string, articlesUrl: string) {
   const root = new URL(articlesUrl)
@@ -28,18 +25,13 @@ export async function refreshArticles(userId: string, articlesUrl: string) {
   catch {
     // Een ontbrekende sitemap is geen fout.
   }
-  const db = useDb()
-  await db.delete(siteArticles).where(eq(siteArticles.userId, userId))
-  const now = new Date()
   const rows = [...pages.entries()].slice(0, 80).map(([url, article]) => ({
-    id: id(),
-    userId,
     url,
     title: article.title || url,
     excerpt: article.excerpt.slice(0, 280),
-    createdAt: now,
   }))
-  if (rows.length) await db.insert(siteArticles).values(rows)
+  if (rows.length) await replaceSiteArticles(userId, rows)
+  else await replaceSiteArticles(userId, [])
   return rows.length
 }
 

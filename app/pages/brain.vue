@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
+const localePath = useLocalePath()
 const api = useRequestFetch()
 const me = await api<{ brand: {
   websiteUrl: string | null
@@ -57,6 +58,7 @@ async function save() {
       </h1>
       <p class="mt-3 text-stone-600">
         {{ t('brain.lead') }}
+        <NuxtLink :to="localePath('/files')" class="font-medium text-accent">{{ t('brain.files') }}</NuxtLink>
       </p>
     </div>
     <div v-if="logo || images.length" class="flex gap-3">

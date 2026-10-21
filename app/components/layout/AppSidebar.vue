@@ -9,6 +9,7 @@ const route = useRoute()
 const items = computed(() => [
   { to: '/', label: t('nav.home'), icon: 'solar:home-2-bold-duotone' },
   { to: '/brain', label: t('nav.brain'), icon: 'solar:brain-bold-duotone' },
+  { to: '/files', label: t('nav.files'), icon: 'solar:folder-bold-duotone' },
   { to: '/strategy', label: t('nav.strategy'), icon: 'solar:chat-round-dots-bold-duotone' },
   { to: '/social', label: t('nav.social'), icon: 'solar:share-circle-bold-duotone' },
   { to: '/seo', label: t('nav.seo'), icon: 'solar:document-text-bold-duotone' },
@@ -23,7 +24,9 @@ function active(path: string) {
 }
 
 async function logout() {
-  await authClient.signOut()
+  await $fetch('/api/auth/logout', { method: 'POST' })
+  useNuxtApp().$pb.authStore.clear()
+  useCookie('pb_auth').value = null
   useState('me').value = null
   useState('me-loaded').value = false
   await navigateTo(localePath('/login'))

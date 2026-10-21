@@ -2,6 +2,8 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 const api = useRequestFetch()
+const me = useState<{ user: { role?: string } } | null>('me')
+const admin = computed(() => me.value?.user.role === 'admin')
 const providers = await api<{
   aiProvider: string
   tier: 'free' | 'paid'
@@ -30,6 +32,8 @@ const providers = await api<{
       </h2>
       <AppThemeSwitch />
     </section>
+    <StorageSettings :admin="admin" />
+    <UserSettings :admin="admin" />
     <UiCard>
       <p class="text-xs uppercase tracking-[0.2em] text-stone-400">
         {{ t('settings.text') }}

@@ -1,7 +1,6 @@
-import { readFile } from 'node:fs/promises'
+import { fileBlob } from '../bytes'
 import { appBaseUrl } from '../http'
 import { signValue } from '../crypto'
-import { absoluteMediaPath } from '../media'
 import { formPost, jsonRequest, readString } from './http'
 import type { ConnectedAccount, PublishInput, PublishResult, RemotePost, TokenSet } from './types'
 
@@ -87,7 +86,7 @@ export async function metaPublish(account: ConnectedAccount, input: PublishInput
   if (account.platform === 'instagram') {
     if (!mediaId || !input.image) throw new Error('Instagram heeft een afbeelding nodig')
     if (appBaseUrl().includes('localhost') || appBaseUrl().includes('127.0.0.1')) {
-      throw new Error('Instagram heeft een publiek bereikbare afbeelding-URL nodig. Zet BETTER_AUTH_URL op een tunnel of publiek adres.')
+      throw new Error('Instagram heeft een publiek bereikbare afbeelding-URL nodig. Zet APP_URL op een tunnel of publiek adres.')
     }
     const exp = Date.now() + 60 * 60 * 1000
     const sig = signValue(`${mediaId}.${exp}`)
@@ -106,10 +105,9 @@ export async function metaPublish(account: ConnectedAccount, input: PublishInput
     return { externalId: readString(published, 'id') }
   }
   if (input.image) {
-    const bytes = await readFile(absoluteMediaPath(input.image.path))
     const form = new FormData()
     form.set('caption', input.body)
-    form.set('source', new Blob([bytes], { type: input.image.mime }), 'image')
+    form.set('source', fileBlob(input.image.bytes, input.image.mime), 'image')
     const response = await fetch(`${graph}/${account.externalId}/photos`, {
       method: 'POST',
       headers: { authorization: `Bearer ${account.accessToken}` },

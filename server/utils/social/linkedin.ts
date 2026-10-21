@@ -1,6 +1,5 @@
-import { readFile } from 'node:fs/promises'
+import { fileBlob } from '../bytes'
 import { appBaseUrl } from '../http'
-import { absoluteMediaPath } from '../media'
 import { formPost, jsonRequest, readString } from './http'
 import type { PublishInput, PublishResult, RemotePost, TokenSet } from './types'
 
@@ -69,7 +68,7 @@ export async function linkedinRecent(token: string, personId: string): Promise<R
 export async function linkedinPublish(token: string, personId: string, input: PublishInput): Promise<PublishResult> {
   let imageUrn: string | null = null
   if (input.image) {
-    imageUrn = await uploadImage(token, personId, input.image.path)
+    imageUrn = await uploadImage(token, personId, input.image.bytes)
   }
   const data = await jsonRequest('https://api.linkedin.com/rest/posts', {
     method: 'POST',
@@ -89,7 +88,7 @@ export async function linkedinPublish(token: string, personId: string, input: Pu
   return { externalId: readString(data, 'id') || `linkedin-${Date.now()}` }
 }
 
-async function uploadImage(token: string, personId: string, path: string) {
+async function uploadImage(token: string, personId: string, bytes: Uint8Array) {
   const init = await jsonRequest('https://api.linkedin.com/rest/images?action=initializeUpload', {
     method: 'POST',
     token,
@@ -99,11 +98,10 @@ async function uploadImage(token: string, personId: string, path: string) {
   const value = (init.value || {}) as Record<string, unknown>
   const uploadUrl = readString(value, 'uploadUrl')
   const imageUrn = readString(value, 'image')
-  const bytes = await readFile(absoluteMediaPath(path))
   const upload = await fetch(uploadUrl, {
     method: 'PUT',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/octet-stream' },
-    body: bytes,
+    body: fileBlob(bytes),
   })
   if (!upload.ok) throw new Error(`LinkedIn-upload mislukte (${upload.status})`)
   return imageUrn

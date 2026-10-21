@@ -11,8 +11,8 @@ export type RemotePost = {
 export type PublishInput = {
   body: string
   title?: string | null
-  image?: { path: string, mime: string } | null
-  video?: { path: string, mime: string } | null
+  image?: { bytes: Uint8Array, mime: string } | null
+  video?: { bytes: Uint8Array, mime: string } | null
 }
 
 export type PublishResult = {

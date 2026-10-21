@@ -1,7 +1,6 @@
-import { eq } from 'drizzle-orm'
-import { useDb } from '../db/client'
-import { brands } from '../db/schema'
-import { id, parseJson } from './http'
+import { parseJson } from './http'
+import type { BrandRow } from './rows'
+import { findBrand, saveBrandRecord } from './store'
 
 export type BrandView = {
   id: string
@@ -19,7 +18,7 @@ export type BrandView = {
   onboardingCompleted: boolean
 }
 
-export function toBrandView(row: typeof brands.$inferSelect): BrandView {
+export function toBrandView(row: BrandRow): BrandView {
   return {
     id: row.id,
     websiteUrl: row.websiteUrl,
@@ -38,35 +37,27 @@ export function toBrandView(row: typeof brands.$inferSelect): BrandView {
 }
 
 export async function getBrand(userId: string) {
-  const row = await useDb().query.brands.findFirst({ where: eq(brands.userId, userId) })
+  const row = await findBrand(userId)
   return row ? toBrandView(row) : null
 }
 
 export async function saveBrand(userId: string, input: Partial<BrandView> & { onboardingCompleted?: boolean }) {
-  const db = useDb()
-  const existing = await db.query.brands.findFirst({ where: eq(brands.userId, userId) })
-  const now = new Date()
-  const values = {
-    websiteUrl: input.websiteUrl ?? existing?.websiteUrl ?? null,
-    companyName: input.companyName ?? existing?.companyName ?? null,
-    logoMediaId: input.logoMediaId ?? existing?.logoMediaId ?? null,
-    imageIdsJson: JSON.stringify(input.imageIds ?? parseJson<string[]>(existing?.imageIdsJson, [])),
-    colorsJson: JSON.stringify(input.colors ?? parseJson<string[]>(existing?.colorsJson, [])),
-    fontsJson: JSON.stringify(input.fonts ?? parseJson<string[]>(existing?.fontsJson, [])),
-    whoTheyAre: input.whoTheyAre ?? existing?.whoTheyAre ?? null,
-    whatTheyDo: input.whatTheyDo ?? existing?.whatTheyDo ?? null,
-    audience: input.audience ?? existing?.audience ?? null,
-    toneOfVoice: input.toneOfVoice ?? existing?.toneOfVoice ?? null,
-    articlesUrl: input.articlesUrl ?? existing?.articlesUrl ?? null,
-    onboardingCompleted: input.onboardingCompleted ?? existing?.onboardingCompleted ?? false,
-    updatedAt: now,
-  }
-  if (existing) {
-    await db.update(brands).set(values).where(eq(brands.id, existing.id))
-  }
-  else {
-    await db.insert(brands).values({ id: id(), userId, createdAt: now, ...values })
-  }
+  const existing = await findBrand(userId)
+  const current = existing ? toBrandView(existing) : null
+  await saveBrandRecord(userId, existing, {
+    websiteUrl: input.websiteUrl ?? current?.websiteUrl ?? null,
+    companyName: input.companyName ?? current?.companyName ?? null,
+    logoMediaId: input.logoMediaId ?? current?.logoMediaId ?? null,
+    imageIds: input.imageIds ?? current?.imageIds ?? [],
+    colors: input.colors ?? current?.colors ?? [],
+    fonts: input.fonts ?? current?.fonts ?? [],
+    whoTheyAre: input.whoTheyAre ?? current?.whoTheyAre ?? null,
+    whatTheyDo: input.whatTheyDo ?? current?.whatTheyDo ?? null,
+    audience: input.audience ?? current?.audience ?? null,
+    toneOfVoice: input.toneOfVoice ?? current?.toneOfVoice ?? null,
+    articlesUrl: input.articlesUrl ?? current?.articlesUrl ?? null,
+    onboardingCompleted: input.onboardingCompleted ?? current?.onboardingCompleted ?? false,
+  })
   return getBrand(userId)
 }
 

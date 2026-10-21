@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const brand = await getBrand(user.id)
   return {
-    user: { id: user.id, name: user.name, email: user.email },
+    user: { id: user.id, name: user.name, email: user.email, role: user.role },
     brand,
   }
 })

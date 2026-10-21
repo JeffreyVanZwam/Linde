@@ -1,7 +1,4 @@
-import { and, eq } from 'drizzle-orm'
-import { useDb } from '../../db/client'
-import { socialAccounts, socialPostTargets, socialPosts } from '../../db/schema'
-import { id } from '../http'
+import { createPost, createTarget, findTargetByExternal, updateSocialAccount, updateTarget } from '../store'
 import { readyAccount } from './accounts'
 import { linkedinRecent } from './linkedin'
 import { metaRecent } from './meta'
@@ -22,34 +19,25 @@ export async function syncAccount(accountId: string) {
   catch (error) {
     warning = error instanceof Error ? error.message : 'Synchronisatie mislukte'
   }
-  const db = useDb()
   for (const post of posts) {
-    const existing = await db.query.socialPostTargets.findFirst({
-      where: and(eq(socialPostTargets.accountId, row.id), eq(socialPostTargets.externalId, post.externalId)),
-    })
+    const existing = await findTargetByExternal(row.id, post.externalId)
     if (existing) {
-      await db.update(socialPostTargets).set({
+      await updateTarget(existing.id, {
         body: post.body,
         title: post.title || null,
         externalUrl: post.url || null,
         publishedAt: post.publishedAt || existing.publishedAt,
-      }).where(eq(socialPostTargets.id, existing.id))
+      })
       continue
     }
-    const postId = id()
-    const now = new Date()
-    await db.insert(socialPosts).values({
-      id: postId,
+    const postId = await createPost({
       userId: row.userId,
       body: post.body,
       status: 'published',
       source: 'synced',
-      scheduledAt: post.publishedAt || now,
-      createdAt: post.publishedAt || now,
-      updatedAt: now,
+      scheduledAt: post.publishedAt || new Date(),
     })
-    await db.insert(socialPostTargets).values({
-      id: id(),
+    await createTarget({
       postId,
       accountId: row.id,
       platform: account.platform,
@@ -58,9 +46,9 @@ export async function syncAccount(accountId: string) {
       status: 'published',
       externalId: post.externalId,
       externalUrl: post.url || null,
-      publishedAt: post.publishedAt || now,
+      publishedAt: post.publishedAt || new Date(),
     })
   }
-  await db.update(socialAccounts).set({ lastSyncAt: new Date(), updatedAt: new Date() }).where(eq(socialAccounts.id, row.id))
+  await updateSocialAccount(row.id, { lastSyncAt: new Date() })
   return { imported: posts.length, warning }
 }

@@ -1,10 +1,8 @@
-import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { useDb } from '../../db/client'
-import { smtpConnections } from '../../db/schema'
 import { requireUser } from '../../utils/auth'
 import { encrypt } from '../../utils/crypto'
-import { id, parseInput } from '../../utils/http'
+import { parseInput } from '../../utils/http'
+import { findSmtp, saveSmtp } from '../../utils/store'
 
 const schema = z.object({
   host: z.string().min(1),
@@ -22,13 +20,11 @@ const schema = z.object({
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const input = parseInput(schema, await readBody(event))
-  const db = useDb()
-  const existing = await db.query.smtpConnections.findFirst({ where: eq(smtpConnections.userId, user.id) })
+  const existing = await findSmtp(user.id)
   if (!existing && !input.password) {
     throw createError({ statusCode: 400, statusMessage: 'Wachtwoord is verplicht' })
   }
-  const now = new Date()
-  const values = {
+  await saveSmtp(user.id, existing, {
     host: input.host,
     port: input.port,
     secure: input.secure,
@@ -39,9 +35,6 @@ export default defineEventHandler(async (event) => {
     imapHost: input.imapHost || null,
     imapPort: input.imapPort || null,
     imapSecure: input.imapSecure ?? null,
-    updatedAt: now,
-  }
-  if (existing) await db.update(smtpConnections).set(values).where(eq(smtpConnections.id, existing.id))
-  else await db.insert(smtpConnections).values({ id: id(), userId: user.id, createdAt: now, ...values })
+  })
   return { ok: true }
 })

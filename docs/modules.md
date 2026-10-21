@@ -2,7 +2,11 @@
 
 ## Brain
 
-`POST /api/brain/extract` fetches HTML and a few stylesheets, stores the logo and images, and asks the text model for the company name, who/what, audience, tone of voice, colours and fonts. If that call fails, the heuristic fields remain and the user fills in the rest. `PUT /api/brain` saves the profile. The first confirmation sets `onboardingCompleted`.
+`POST /api/brain/extract` fetches HTML and a few stylesheets, stores the logo and images in the Brain folder of the file library, and asks the text model for the company name, who/what, audience, tone of voice, colours and fonts. If that call fails, the heuristic fields remain and the user fills in the rest. `PUT /api/brain` saves the profile. The first confirmation sets `onboardingCompleted`. The Brain page links to `/files`, where those images show as thumbnails.
+
+## Files
+
+`/files` lists the signed-in user's folders and files. `POST /api/library/folders` creates a folder. `POST /api/library/files` uploads into the open folder, or into the root when none is open. Images render with `GET /api/media/:id?thumb=200x200`. Other files use an icon. Generated images go to Gegenereerd, edited images to Bewerkingen, and brand assets to Brain.
 
 ## Strategy
 

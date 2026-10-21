@@ -11,13 +11,19 @@ const busy = ref(false)
 async function submit() {
   busy.value = true
   error.value = ''
-  const result = await authClient.signUp.email({ name: name.value, email: email.value, password: password.value })
-  if (result.error) {
-    error.value = result.error.message || t('common.error')
+  try {
+    const result = await $fetch<{ token: string }>('/api/auth/register', {
+      method: 'POST',
+      body: { name: name.value, email: email.value, password: password.value },
+    })
+    useNuxtApp().$pb.authStore.save(result.token)
+    await refreshMe()
+  }
+  catch (cause) {
+    error.value = errorText(cause) || t('common.error')
     busy.value = false
     return
   }
-  await refreshMe()
   await navigateTo(localePath('/onboarding'))
   busy.value = false
 }

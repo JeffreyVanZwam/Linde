@@ -1,9 +1,7 @@
-import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { useDb } from '../../../../db/client'
-import { outreachCampaigns, outreachRecipients } from '../../../../db/schema'
 import { requireUser } from '../../../../utils/auth'
-import { apiError, id, parseInput } from '../../../../utils/http'
+import { apiError, parseInput } from '../../../../utils/http'
+import { createRecipients, findCampaign } from '../../../../utils/store'
 
 const schema = z.object({
   csv: z.string().optional(),
@@ -17,9 +15,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const campaignId = getRouterParam(event, 'id')
   if (!campaignId) apiError(400, 'Campagne ontbreekt')
-  const campaign = await useDb().query.outreachCampaigns.findFirst({
-    where: and(eq(outreachCampaigns.id, campaignId), eq(outreachCampaigns.userId, user.id)),
-  })
+  const campaign = await findCampaign(campaignId, user.id)
   if (!campaign) apiError(404, 'Campagne niet gevonden')
   const input = parseInput(schema, await readBody(event))
   const rows = [
@@ -27,8 +23,7 @@ export default defineEventHandler(async (event) => {
     ...parseCsv(input.csv || ''),
   ]
   if (!rows.length) apiError(400, 'Geen ontvangers')
-  await useDb().insert(outreachRecipients).values(rows.map(row => ({
-    id: id(),
+  await createRecipients(rows.map(row => ({
     campaignId: campaign.id,
     email: row.email.trim().toLowerCase(),
     name: row.name || null,

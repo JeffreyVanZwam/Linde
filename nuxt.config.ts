@@ -29,7 +29,7 @@ export default defineNuxtConfig({
   vite: {
     plugins: [tailwindcss()],
     optimizeDeps: {
-      include: ['motion-v', 'cropperjs', 'better-auth/vue'],
+      include: ['motion-v', 'cropperjs', 'pocketbase'],
     },
   },
   vue: {
@@ -53,7 +53,9 @@ export default defineNuxtConfig({
     detectBrowserLanguage: false,
   },
   runtimeConfig: {
-    databaseUrl: process.env.DATABASE_URL || 'file:.data/app.db',
+    pocketbaseUrl: process.env.POCKETBASE_URL || 'http://127.0.0.1:8090',
+    pocketbaseAdminEmail: process.env.POCKETBASE_ADMIN_EMAIL || 'admin@linde.local',
+    pocketbaseAdminPassword: process.env.POCKETBASE_ADMIN_PASSWORD || 'linde-local-admin',
     encryptionKey: process.env.ENCRYPTION_KEY || '',
     aiProvider: process.env.AI_PROVIDER || 'free',
     freeBaseUrl: process.env.FREE_BASE_URL || 'https://text.pollinations.ai/v1',
@@ -82,7 +84,8 @@ export default defineNuxtConfig({
     public: {
       aiProvider: process.env.AI_PROVIDER || 'free',
       imageProvider: process.env.IMAGE_PROVIDER || 'openai',
-      appUrl: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+      pocketbaseUrl: process.env.POCKETBASE_URL || 'http://127.0.0.1:8090',
+      appUrl: process.env.APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000',
     },
   },
   nitro: {

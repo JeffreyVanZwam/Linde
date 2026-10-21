@@ -1,11 +1,9 @@
-import { eq } from 'drizzle-orm'
-import { useDb } from '../../db/client'
-import { smtpConnections } from '../../db/schema'
 import { requireUser } from '../../utils/auth'
+import { findSmtp } from '../../utils/store'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
-  const row = await useDb().query.smtpConnections.findFirst({ where: eq(smtpConnections.userId, user.id) })
+  const row = await findSmtp(user.id)
   if (!row) return null
   return {
     host: row.host,
