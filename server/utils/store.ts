@@ -103,6 +103,10 @@ export async function touchConversation(id: string) {
   await updateRecord('conversations', id, { title: (await oneRecord('conversations', id))?.title || '' })
 }
 
+export async function renameConversation(id: string, title: string) {
+  await updateRecord('conversations', id, { title })
+}
+
 export async function deleteConversation(id: string) {
   await removeFiltered('messages', await filterOf('conversation = {:id}', { id }))
   await removeRecord('conversations', id)

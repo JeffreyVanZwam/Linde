@@ -26,7 +26,8 @@
     "seo": "SEO / GEO",
     "outreach": "Outreach",
     "settings": "Settings",
-    "logout": "Log out"
+    "logout": "Log out",
+    "history": "Chat history"
   },
   "auth": {
     "loginTitle": "Welcome back",
@@ -236,7 +237,10 @@
     "empty": "No chats yet.",
     "delete": "Delete",
     "deleteNamed": "Delete {title}",
-    "confirmDelete": "Delete this chat? The messages will be removed."
+    "confirmDelete": "Delete this chat? The messages will be removed.",
+    "view": "View",
+    "rename": "Rename",
+    "actions": "Actions for {title}"
   },
   "unsubscribe": {
     "title": "Unsubscribed",

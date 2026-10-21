@@ -28,12 +28,6 @@ const groups = computed(() => {
         { to: '/outreach', label: t('nav.outreach'), icon: 'solar:letter-bold-duotone' },
       ],
     },
-    {
-      label: t('nav.groupSystem'),
-      items: [
-        { to: '/settings', label: t('nav.settings'), icon: 'solar:settings-bold-duotone' },
-      ],
-    },
   ]
   let delay = 40
   return rows.map(group => ({
@@ -78,9 +72,9 @@ async function logout() {
 <template>
   <div v-if="open" class="fixed inset-0 z-30 bg-black/50 backdrop-blur-[2px] lg:hidden" @click="open = false" />
   <aside
-    class="z-40 flex w-[min(17rem,calc(100vw-1.5rem))] shrink-0 flex-col bg-sidebar px-4 py-5 text-sidebar-ink sm:w-64"
+    class="z-40 flex h-dvh w-[min(17rem,85vw)] shrink-0 flex-col overflow-hidden bg-sidebar px-4 py-5 text-sidebar-ink sm:w-64"
     :class="open
-      ? 'fixed bottom-2 left-2 top-2 rounded-[1.4rem] shadow-2xl lg:static lg:inset-auto lg:rounded-none lg:shadow-none'
+      ? 'fixed inset-y-0 left-0 shadow-2xl lg:static lg:shadow-none'
       : 'max-lg:hidden'"
   >
     <NuxtLink :to="localePath('/')" class="flex items-center gap-3 px-1" @click="open = false">
@@ -92,7 +86,7 @@ async function logout() {
         <span class="block text-xs text-sidebar-muted">{{ t('nav.dashboard') }}</span>
       </span>
     </NuxtLink>
-    <nav class="mt-8 flex flex-1 flex-col gap-6">
+    <nav class="mt-8 flex shrink-0 flex-col gap-6">
       <div v-for="group in groups" :key="group.label">
         <p class="px-3 text-xs font-medium text-sidebar-muted">
           {{ group.label }}
@@ -113,7 +107,17 @@ async function logout() {
         </div>
       </div>
     </nav>
-    <div class="mt-4 space-y-1 border-t border-white/10 pt-3">
+    <AppChatHistory />
+    <div class="mt-4 shrink-0 space-y-1 border-t border-white/10 pt-3">
+      <NuxtLink
+        :to="localePath('/settings')"
+        class="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition"
+        :class="active('/settings') ? 'bg-sidebar-active text-sidebar-ink' : 'text-sidebar-muted hover:bg-white/10 hover:text-sidebar-ink'"
+        @click="open = false"
+      >
+        <Icon name="solar:settings-bold-duotone" class="size-5" />
+        {{ t('nav.settings') }}
+      </NuxtLink>
       <AppInstallPrompt />
       <button type="button" class="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm text-sidebar-muted transition hover:bg-white/10 hover:text-sidebar-ink" @click="logout">
         <Icon name="solar:logout-2-bold-duotone" class="size-5" />

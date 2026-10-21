@@ -7,6 +7,8 @@ export function useDeleteChat() {
 
   async function deleteChat(id: string) {
     await $fetch(`/api/conversations/${id}`, { method: 'DELETE' })
+    const version = useState('chat-history-version', () => 0)
+    version.value += 1
   }
 
   return { confirmDelete, deleteChat }

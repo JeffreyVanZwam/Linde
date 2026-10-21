@@ -26,7 +26,8 @@
     "seo": "SEO / GEO",
     "outreach": "Outreach",
     "settings": "Instellingen",
-    "logout": "Uitloggen"
+    "logout": "Uitloggen",
+    "history": "Chatgeschiedenis"
   },
   "auth": {
     "loginTitle": "Welkom terug",
@@ -236,7 +237,10 @@
     "empty": "Nog geen gesprekken.",
     "delete": "Verwijderen",
     "deleteNamed": "Verwijder {title}",
-    "confirmDelete": "Dit gesprek verwijderen? De berichten worden gewist."
+    "confirmDelete": "Dit gesprek verwijderen? De berichten worden gewist.",
+    "view": "Bekijken",
+    "rename": "Naam wijzigen",
+    "actions": "Acties voor {title}"
   },
   "unsubscribe": {
     "title": "Afgemeld",

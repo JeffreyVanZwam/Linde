@@ -19,6 +19,11 @@ const chats = ref(await api<ChatSummary[]>(props.module ? `/api/conversations?mo
 const visible = computed(() => props.limit ? chats.value.slice(0, props.limit) : chats.value)
 const error = ref('')
 const pendingId = ref('')
+const historyVersion = useState('chat-history-version', () => 0)
+
+watch(historyVersion, async () => {
+  chats.value = await api<ChatSummary[]>(props.module ? `/api/conversations?module=${props.module}` : '/api/conversations')
+})
 
 function path(chat: ChatSummary) {
   if (chat.module === 'strategy') return localePath(`/strategy/${chat.id}`)
