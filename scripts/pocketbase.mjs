@@ -55,8 +55,12 @@ export async function ensureBinary() {
   if (!response.ok) throw new Error(`Download mislukte (${response.status}) voor ${url}`)
   const zipPath = resolve(tmpdir(), name)
   writeFileSync(zipPath, Buffer.from(await response.arrayBuffer()))
-  spawnSync('unzip', ['-o', zipPath, '-d', binDir], { stdio: 'inherit' })
-  if (!existsSync(binary)) throw new Error('PocketBase-binary ontbreekt na het uitpakken')
+  const extract = process.platform === 'win32'
+    ? spawnSync('tar', ['-xf', zipPath, '-C', binDir], { stdio: 'inherit' })
+    : spawnSync('unzip', ['-o', zipPath, '-d', binDir], { stdio: 'inherit' })
+  if (extract.status !== 0 || !existsSync(binary)) {
+    throw new Error('PocketBase-binary ontbreekt na het uitpakken')
+  }
   if (process.platform !== 'win32') chmodSync(binary, 0o755)
   return binary
 }
