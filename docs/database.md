@@ -9,6 +9,7 @@ SQLite via `@libsql/client` and Drizzle. Path: `DATABASE_URL`, default `file:.da
 - `user`, `session`, `account`, `verification` — better-auth.
 - `brands` — one brand profile per user.
 - `conversations`, `messages` — chats per module (`strategy`, `social`, `seo`, `outreach`).
+- `social_provider_apps` — per user, the developer-app client id and encrypted secret used to start OAuth.
 - `social_accounts` — platform, external id, encrypted tokens.
 - `media_assets` — upload, generated, edited or from Brain.
 - `social_posts`, `social_post_targets` — one post, several platforms. `source` is `local` or `synced`.

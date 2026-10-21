@@ -91,6 +91,14 @@ const statements = [
     updated_at integer NOT NULL
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS social_accounts_user_platform_external ON social_accounts (user_id, platform, external_id)`,
+  `CREATE TABLE IF NOT EXISTS social_connect_pending (
+    id text PRIMARY KEY,
+    user_id text NOT NULL,
+    provider text NOT NULL,
+    payload_enc text NOT NULL,
+    expires_at integer NOT NULL,
+    created_at integer NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS media_assets (
     id text PRIMARY KEY,
     user_id text NOT NULL,
@@ -153,6 +161,17 @@ const statements = [
     created_at integer NOT NULL,
     updated_at integer NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS social_provider_apps (
+    id text PRIMARY KEY,
+    user_id text NOT NULL,
+    provider text NOT NULL,
+    client_id text NOT NULL,
+    client_secret_enc text NOT NULL,
+    privacy text,
+    created_at integer NOT NULL,
+    updated_at integer NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS social_provider_apps_user_provider ON social_provider_apps (user_id, provider)`,
   `CREATE TABLE IF NOT EXISTS smtp_connections (
     id text PRIMARY KEY,
     user_id text NOT NULL UNIQUE,

@@ -2,7 +2,7 @@
 const { t } = useI18n()
 const route = useRoute()
 const api = useRequestFetch()
-const accounts = await api<Array<{ id: string, platform: string, displayName: string }>>('/api/social/accounts')
+const accounts = await api<Array<{ id: string, platform: string, displayName: string, authorType: string | null }>>('/api/social/accounts')
 const posts = await api<Array<{
   id: string
   body: string
@@ -28,6 +28,13 @@ const mediaId = ref(existing?.mediaAssetId || '')
 const prompt = ref('')
 const warning = ref(existing?.duplicateWarning || '')
 const editing = ref(false)
+
+function accountLabel(account: { displayName: string, platform: string, authorType: string | null }) {
+  if (account.platform === 'instagram') return `${account.displayName} · Instagram`
+  if (account.authorType === 'organization') return `${account.displayName} · ${t('social.linkedinPage')}`
+  if (account.authorType === 'person') return `${account.displayName} · ${t('social.linkedinProfile')}`
+  return `${account.displayName} · ${account.platform}`
+}
 const error = ref('')
 const busy = ref(false)
 
@@ -116,7 +123,7 @@ async function retry() {
       <label v-for="account in accounts" :key="account.id" class="block rounded-3xl border border-line bg-white p-4">
         <span class="flex items-center gap-2 text-sm">
           <input v-model="selected" type="checkbox" :value="account.id">
-          {{ account.displayName }} · {{ account.platform }}
+          {{ accountLabel(account) }}
         </span>
         <UiInput
           v-if="account.platform === 'youtube' || account.platform === 'tiktok'"

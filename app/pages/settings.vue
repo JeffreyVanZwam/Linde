@@ -55,7 +55,7 @@ const providers = await api<{
     <UiCard>
       <div class="flex flex-wrap gap-2 text-sm">
         <span v-for="(ready, name) in providers.social" :key="name" class="rounded-full bg-stone-100 px-3 py-1">
-          {{ name }} · {{ ready ? t('settings.ready') : t('settings.missing') }}
+          {{ name }} · {{ ready ? t('settings.ready') : t('settings.notSet') }}
         </span>
         <span class="rounded-full bg-stone-100 px-3 py-1">
           API mail · {{ providers.mailApi ? t('settings.ready') : t('settings.off') }}

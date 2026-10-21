@@ -2,12 +2,11 @@ import { readFile, stat } from 'node:fs/promises'
 import { appBaseUrl } from '../http'
 import { absoluteMediaPath } from '../media'
 import { formPost, jsonRequest, readString } from './http'
-import type { PublishInput, PublishResult, RemotePost, TokenSet } from './types'
+import type { OAuthApp, PublishInput, PublishResult, RemotePost, TokenSet } from './types'
 
-export function youtubeAuthUrl(state: string) {
-  const config = useRuntimeConfig()
+export function youtubeAuthUrl(state: string, app: OAuthApp) {
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')
-  url.searchParams.set('client_id', config.googleClientId)
+  url.searchParams.set('client_id', app.clientId)
   url.searchParams.set('redirect_uri', `${appBaseUrl()}/api/social/callback/youtube`)
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('scope', 'https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly')
@@ -17,23 +16,21 @@ export function youtubeAuthUrl(state: string) {
   return url.toString()
 }
 
-export async function youtubeExchange(code: string): Promise<TokenSet> {
-  const config = useRuntimeConfig()
+export async function youtubeExchange(code: string, app: OAuthApp): Promise<TokenSet> {
   const data = await formPost('https://oauth2.googleapis.com/token', {
     code,
-    client_id: config.googleClientId,
-    client_secret: config.googleClientSecret,
+    client_id: app.clientId,
+    client_secret: app.clientSecret,
     redirect_uri: `${appBaseUrl()}/api/social/callback/youtube`,
     grant_type: 'authorization_code',
   })
   return tokenFrom(data)
 }
 
-export async function youtubeRefresh(refreshToken: string): Promise<TokenSet> {
-  const config = useRuntimeConfig()
+export async function youtubeRefresh(refreshToken: string, app: OAuthApp): Promise<TokenSet> {
   const data = await formPost('https://oauth2.googleapis.com/token', {
-    client_id: config.googleClientId,
-    client_secret: config.googleClientSecret,
+    client_id: app.clientId,
+    client_secret: app.clientSecret,
     refresh_token: refreshToken,
     grant_type: 'refresh_token',
   })

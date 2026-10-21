@@ -30,6 +30,12 @@ export type ConnectedAccount = {
   meta?: Record<string, string>
 }
 
+export type OAuthApp = {
+  clientId: string
+  clientSecret: string
+  privacy: string
+}
+
 export type TokenSet = {
   accessToken: string
   refreshToken?: string | null

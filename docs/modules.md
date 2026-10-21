@@ -10,7 +10,7 @@
 
 ## Social
 
-Connecting starts at `/api/social/connect/:provider` and returns to `/api/social/callback/:provider`. Providers: `linkedin`, `meta`, `youtube`, `tiktok`. Meta creates a Facebook account per page and, when present, an Instagram account.
+On Accounts the user saves a developer app, then `/api/social/connect/:provider` sends them to the platform login. The callback is `/api/social/callback/:provider`. Providers: `linkedin`, `meta`, `youtube`, `tiktok`. Meta creates a Facebook account per page and, when present, an Instagram account.
 
 `POST /api/social/sync` reads recent posts. They land in the same post tables with `source: synced`. The composer and the social chat create local drafts. A Jaccard check warns when the text closely matches an earlier post.
 
@@ -20,7 +20,7 @@ The image editor uses Cropper.js to crop and rotate, and a canvas for brightness
 
 ## SEO / GEO
 
-The articles URL lives on the brand. `POST /api/seo/refresh` reads that page and, when it exists, `/sitemap.xml`. The SEO chat can request that list and save a draft with markdown, FAQ, JSON-LD, keywords, internal links and GEO notes. The app does not publish the article to the site.
+The articles URL lives on the brand. `POST /api/seo/refresh` reads that listing and stores the article links under the same path. A sitemap is only used when the listing has no article links; sitemap indexes are expanded and never stored as articles. The SEO chat can request that list and save a draft with markdown, FAQ, JSON-LD, keywords, internal links and GEO notes. The app does not publish the article to the site.
 
 ## Outreach
 

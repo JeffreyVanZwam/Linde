@@ -82,6 +82,19 @@ export const messages = sqliteTable('messages', {
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
 })
 
+export const socialProviderApps = sqliteTable('social_provider_apps', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  provider: text('provider').notNull(),
+  clientId: text('client_id').notNull(),
+  clientSecretEnc: text('client_secret_enc').notNull(),
+  privacy: text('privacy'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+}, table => [
+  uniqueIndex('social_provider_apps_user_provider').on(table.userId, table.provider),
+])
+
 export const socialAccounts = sqliteTable('social_accounts', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
@@ -98,6 +111,15 @@ export const socialAccounts = sqliteTable('social_accounts', {
 }, table => [
   uniqueIndex('social_accounts_user_platform_external').on(table.userId, table.platform, table.externalId),
 ])
+
+export const socialConnectPending = sqliteTable('social_connect_pending', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  provider: text('provider').notNull(),
+  payloadEnc: text('payload_enc').notNull(),
+  expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+})
 
 export const mediaAssets = sqliteTable('media_assets', {
   id: text('id').primaryKey(),

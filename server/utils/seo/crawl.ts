@@ -1,37 +1,32 @@
-import * as cheerio from 'cheerio'
 import { eq } from 'drizzle-orm'
 import { useDb } from '../../db/client'
 import { siteArticles } from '../../db/schema'
 import { id } from '../http'
+import { articlesFromListing, isListingArticleUrl, isSitemapIndex, isSitemapUrl, sitemapLocations, titleFromPath, type ListingArticle } from './listing'
+
+const MAX_ARTICLES = 80
 
 export async function refreshArticles(userId: string, articlesUrl: string) {
   const root = new URL(articlesUrl)
-  const pages = new Map<string, { title: string, excerpt: string }>()
-  await collect(root, pages)
-  const sitemap = new URL('/sitemap.xml', root.origin)
-  try {
-    const response = await fetch(sitemap, { signal: AbortSignal.timeout(8_000) })
-    if (response.ok) {
-      const xml = await response.text()
-      const locs = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map(match => match[1]).slice(0, 40)
-      for (const loc of locs) {
-        if (!loc || pages.has(loc)) continue
-        try {
-          await collect(new URL(loc), pages, true)
-        }
-        catch {
-          continue
-        }
-      }
-    }
+  const response = await fetch(root, {
+    signal: AbortSignal.timeout(12_000),
+    headers: {
+      'user-agent': 'MarketingDashboardBot/1.0',
+      'accept': 'text/html',
+    },
+  })
+  if (!response.ok) {
+    throw createError({ statusCode: 502, statusMessage: 'De artikelenpagina kon niet worden gelezen' })
   }
-  catch {
-    // Een ontbrekende sitemap is geen fout.
-  }
+  const html = (await response.text()).slice(0, 2_000_000)
+  const page = new URL(response.url)
+  const pages = articlesFromListing(html, page.href)
+  if (pages.size === 0) await collectFromSitemap(page, pages)
+
   const db = useDb()
   await db.delete(siteArticles).where(eq(siteArticles.userId, userId))
   const now = new Date()
-  const rows = [...pages.entries()].slice(0, 80).map(([url, article]) => ({
+  const rows = [...pages.entries()].slice(0, MAX_ARTICLES).map(([url, article]) => ({
     id: id(),
     userId,
     url,
@@ -43,38 +38,49 @@ export async function refreshArticles(userId: string, articlesUrl: string) {
   return rows.length
 }
 
-async function collect(url: URL, pages: Map<string, { title: string, excerpt: string }>, single = false) {
-  const response = await fetch(url, {
-    signal: AbortSignal.timeout(8_000),
-    headers: { 'user-agent': 'MarketingDashboardBot/1.0' },
-  })
-  if (!response.ok) return
-  const html = (await response.text()).slice(0, 800_000)
-  const $ = cheerio.load(html)
-  const title = $('title').first().text().trim() || $('h1').first().text().trim()
-  const excerpt = $('meta[name="description"]').attr('content') || $('p').first().text().replace(/\s+/g, ' ').trim()
-  pages.set(response.url, { title, excerpt })
-  if (single) return
-  const links = $('a[href]')
-    .map((_, element) => $(element).attr('href') || '')
-    .get()
-    .slice(0, 30)
-  for (const href of links) {
-    if (pages.size >= 40) return
-    let next: URL
+async function collectFromSitemap(page: URL, pages: Map<string, ListingArticle>) {
+  const listing = normalizeListing(page)
+  const queue = [new URL('/sitemap.xml', listing.origin).href]
+  const seen = new Set<string>()
+  while (queue.length && seen.size < 8 && pages.size < MAX_ARTICLES) {
+    const sitemapUrl = queue.shift()
+    if (!sitemapUrl || seen.has(sitemapUrl)) continue
+    seen.add(sitemapUrl)
+    let xml = ''
     try {
-      next = new URL(href, response.url)
+      const response = await fetch(sitemapUrl, { signal: AbortSignal.timeout(8_000) })
+      if (!response.ok) continue
+      xml = await response.text()
     }
     catch {
       continue
     }
-    if (next.origin !== url.origin || pages.has(next.toString())) continue
-    if (!/blog|artikel|article|nieuws|news|kennis|insights/i.test(next.pathname)) continue
-    try {
-      await collect(next, pages, true)
-    }
-    catch {
+    const locations = sitemapLocations(xml)
+    if (isSitemapIndex(xml)) {
+      for (const loc of locations) {
+        if (isSitemapUrl(loc)) queue.push(loc)
+      }
       continue
+    }
+    for (const loc of locations) {
+      if (pages.size >= MAX_ARTICLES) return
+      let next: URL
+      try {
+        next = normalizeListing(new URL(loc))
+      }
+      catch {
+        continue
+      }
+      if (!isListingArticleUrl(listing, next) || pages.has(next.href)) continue
+      pages.set(next.href, { title: titleFromPath(next.pathname), excerpt: '', fromHeading: false })
     }
   }
+}
+
+function normalizeListing(url: URL) {
+  const next = new URL(url.href)
+  next.hash = ''
+  next.search = ''
+  if (next.pathname.length > 1) next.pathname = next.pathname.replace(/\/+$/, '')
+  return next
 }

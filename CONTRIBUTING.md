@@ -17,7 +17,7 @@ A clean install does not need a separate migration: `server/db/ensure.ts` create
 - Tailwind for styling. No extra CSS except the theme in `app/assets/css/main.css` and the cropper.
 - New user-facing copy belongs in both `i18n/locales/nl.json` and `en.json`. Dutch is the default product language. Documentation stays in English.
 - Every `server/api` entry is validated with Zod.
-- Secrets stay in `.env`. OAuth tokens and the SMTP password are stored encrypted via `server/utils/crypto.ts`.
+- AI and mail API secrets stay in `.env`. OAuth tokens, social app secrets and the SMTP password are stored encrypted via `server/utils/crypto.ts`.
 - No email scraping and no tricks to bypass spam filters. Recipients come from the user.
 - Although the app does provide themes, we're not creating a coloring book. New themes are allowed but have the lowest priority and acceptance.
 

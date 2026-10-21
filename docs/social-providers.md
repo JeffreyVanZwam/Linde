@@ -10,8 +10,8 @@ The existing adapters live in `server/utils/social/`. Each platform has the same
 4. Wire the callback in `server/api/social/callback/[platform].get.ts` and save the account with `upsertSocialAccount`. Tokens are encrypted there.
 5. Call `recent` from `server/utils/social/sync.ts` and `publish` from `server/utils/social/publish.ts`.
 6. Refresh tokens in `readyAccount` when the platform has a refresh token.
-7. Put the client id and secret in `nuxt.config.ts` (`runtimeConfig`), `.env.example` and `docs/environment.md`.
-8. Add the button on `app/pages/social/accounts.vue` and an i18n label when the name is not the platform id.
+7. Read the client id and secret through `socialApp()` in `server/utils/social/apps.ts`. Users save them on the accounts page; they are encrypted in `social_provider_apps`.
+8. Add the provider to the accounts page and an i18n label when the name is not the platform id.
 9. Update the calendar filter in `app/components/social/PostCalendar.vue`.
 
 ## Rules

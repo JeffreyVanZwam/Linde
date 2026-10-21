@@ -2,12 +2,11 @@ import { readFile, stat } from 'node:fs/promises'
 import { appBaseUrl } from '../http'
 import { absoluteMediaPath } from '../media'
 import { formPost, jsonRequest, readString } from './http'
-import type { PublishInput, PublishResult, RemotePost, TokenSet } from './types'
+import type { OAuthApp, PublishInput, PublishResult, RemotePost, TokenSet } from './types'
 
-export function tiktokAuthUrl(state: string) {
-  const config = useRuntimeConfig()
+export function tiktokAuthUrl(state: string, app: OAuthApp) {
   const url = new URL('https://www.tiktok.com/v2/auth/authorize/')
-  url.searchParams.set('client_key', config.tiktokClientKey)
+  url.searchParams.set('client_key', app.clientId)
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('scope', 'user.info.basic,video.list,video.publish')
   url.searchParams.set('redirect_uri', `${appBaseUrl()}/api/social/callback/tiktok`)
@@ -15,11 +14,10 @@ export function tiktokAuthUrl(state: string) {
   return url.toString()
 }
 
-export async function tiktokExchange(code: string): Promise<TokenSet> {
-  const config = useRuntimeConfig()
+export async function tiktokExchange(code: string, app: OAuthApp): Promise<TokenSet> {
   const data = await formPost('https://open.tiktokapis.com/v2/oauth/token/', {
-    client_key: config.tiktokClientKey,
-    client_secret: config.tiktokClientSecret,
+    client_key: app.clientId,
+    client_secret: app.clientSecret,
     code,
     grant_type: 'authorization_code',
     redirect_uri: `${appBaseUrl()}/api/social/callback/tiktok`,
@@ -27,11 +25,10 @@ export async function tiktokExchange(code: string): Promise<TokenSet> {
   return tokenFrom(data)
 }
 
-export async function tiktokRefresh(refreshToken: string): Promise<TokenSet> {
-  const config = useRuntimeConfig()
+export async function tiktokRefresh(refreshToken: string, app: OAuthApp): Promise<TokenSet> {
   const data = await formPost('https://open.tiktokapis.com/v2/oauth/token/', {
-    client_key: useRuntimeConfig().tiktokClientKey,
-    client_secret: config.tiktokClientSecret,
+    client_key: app.clientId,
+    client_secret: app.clientSecret,
     grant_type: 'refresh_token',
     refresh_token: refreshToken,
   })
@@ -66,7 +63,7 @@ export async function tiktokRecent(token: string): Promise<RemotePost[]> {
   })).filter(video => video.externalId)
 }
 
-export async function tiktokPublish(token: string, input: PublishInput): Promise<PublishResult> {
+export async function tiktokPublish(token: string, input: PublishInput, privacy = 'SELF_ONLY'): Promise<PublishResult> {
   if (!input.video) throw new Error('TikTok heeft een videobestand nodig')
   const filePath = absoluteMediaPath(input.video.path)
   const info = await stat(filePath)
@@ -76,7 +73,7 @@ export async function tiktokPublish(token: string, input: PublishInput): Promise
     body: {
       post_info: {
         title: input.title || input.body.slice(0, 150),
-        privacy_level: useRuntimeConfig().tiktokPrivacy || 'SELF_ONLY',
+        privacy_level: privacy,
         disable_duet: false,
         disable_comment: false,
         disable_stitch: false,

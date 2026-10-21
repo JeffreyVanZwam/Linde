@@ -3,6 +3,7 @@ import { platformLimits, type SocialPlatform } from '~~/shared/platforms'
 import { useDb } from '../../db/client'
 import { mediaAssets, socialPostTargets, socialPosts } from '../../db/schema'
 import { readyAccount } from './accounts'
+import { socialApp } from './apps'
 import { linkedinPublish } from './linkedin'
 import { metaPublish } from './meta'
 import { tiktokPublish } from './tiktok'
@@ -37,7 +38,8 @@ export async function publishPost(postId: string) {
       continue
     }
     try {
-      const { account } = await readyAccount(target.accountId)
+      const ready = await readyAccount(target.accountId)
+      const account = ready.account
       const input: PublishInput = {
         body: target.body,
         title: target.title,
@@ -45,7 +47,7 @@ export async function publishPost(postId: string) {
         video: media?.kind === 'video' ? { path: media.path, mime: media.mime } : null,
       }
       assertMedia(account.platform, input)
-      const result = await publishTo(account, input, media?.id || null)
+      const result = await publishTo(ready.row.userId, account, input, media?.id || null)
       await db.update(socialPostTargets).set({
         status: 'published',
         externalId: result.externalId,
@@ -74,10 +76,13 @@ function assertMedia(platform: SocialPlatform, input: PublishInput) {
   if (rule.requires === 'video' && !input.video) throw new Error(`${platform} heeft een video nodig`)
 }
 
-async function publishTo(account: Awaited<ReturnType<typeof readyAccount>>['account'], input: PublishInput, mediaId: string | null) {
-  if (account.platform === 'linkedin') return linkedinPublish(account.accessToken, account.externalId, input)
+async function publishTo(userId: string, account: Awaited<ReturnType<typeof readyAccount>>['account'], input: PublishInput, mediaId: string | null) {
+  if (account.platform === 'linkedin') return linkedinPublish(account.accessToken, account.externalId, input, account.meta?.authorType)
   if (account.platform === 'facebook' || account.platform === 'instagram') return metaPublish(account, input, mediaId)
   if (account.platform === 'youtube') return youtubePublish(account.accessToken, input)
-  if (account.platform === 'tiktok') return tiktokPublish(account.accessToken, input)
+  if (account.platform === 'tiktok') {
+    const app = await socialApp(userId, 'tiktok')
+    return tiktokPublish(account.accessToken, input, app?.privacy || 'SELF_ONLY')
+  }
   throw new Error('Onbekend platform')
 }

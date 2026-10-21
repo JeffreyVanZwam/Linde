@@ -3,29 +3,51 @@ import { appBaseUrl } from '../http'
 import { signValue } from '../crypto'
 import { absoluteMediaPath } from '../media'
 import { formPost, jsonRequest, readString } from './http'
-import type { ConnectedAccount, PublishInput, PublishResult, RemotePost, TokenSet } from './types'
+import type { ConnectedAccount, OAuthApp, PublishInput, PublishResult, RemotePost, TokenSet } from './types'
 
 const graph = 'https://graph.facebook.com/v21.0'
 
-export function metaAuthUrl(state: string) {
-  const config = useRuntimeConfig()
+export function metaAuthUrl(state: string, app: OAuthApp) {
   const url = new URL('https://www.facebook.com/v21.0/dialog/oauth')
-  url.searchParams.set('client_id', config.metaAppId)
+  url.searchParams.set('client_id', app.clientId)
   url.searchParams.set('redirect_uri', `${appBaseUrl()}/api/social/callback/meta`)
   url.searchParams.set('state', state)
   url.searchParams.set('scope', 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish')
   return url.toString()
 }
 
-export async function metaExchange(code: string): Promise<TokenSet> {
-  const config = useRuntimeConfig()
+export async function metaExchange(code: string, app: OAuthApp): Promise<TokenSet> {
   const data = await formPost(`${graph}/oauth/access_token`, {
-    client_id: config.metaAppId,
-    client_secret: config.metaAppSecret,
+    client_id: app.clientId,
+    client_secret: app.clientSecret,
     redirect_uri: `${appBaseUrl()}/api/social/callback/meta`,
     code,
   })
-  return { accessToken: readString(data, 'access_token'), expiresAt: null }
+  const shortToken = readString(data, 'access_token')
+  try {
+    const long = await formPost(`${graph}/oauth/access_token`, {
+      grant_type: 'fb_exchange_token',
+      client_id: app.clientId,
+      client_secret: app.clientSecret,
+      fb_exchange_token: shortToken,
+    })
+    const expiresIn = Number(long.expires_in || 0)
+    return {
+      accessToken: readString(long, 'access_token') || shortToken,
+      expiresAt: expiresIn ? new Date(Date.now() + expiresIn * 1000) : null,
+    }
+  }
+  catch {
+    return { accessToken: shortToken, expiresAt: null }
+  }
+}
+
+export async function metaProfile(token: string) {
+  const data = await jsonRequest(`${graph}/me?fields=id,name`, { token })
+  return {
+    externalId: readString(data, 'id'),
+    displayName: readString(data, 'name') || 'Facebook',
+  }
 }
 
 export async function metaAccounts(userToken: string): Promise<ConnectedAccount[]> {

@@ -13,14 +13,11 @@ Copy `.env.example` to `.env`. Nuxt reads everything below at startup.
 | `OPENAI_MODEL` / `ANTHROPIC_MODEL` / `GEMINI_MODEL` | Model name your account is allowed to use. |
 | `IMAGE_PROVIDER` | `openai` or `none`. |
 | `OPENAI_IMAGE_MODEL` | Image model, default `gpt-image-1`. |
-| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | LinkedIn app. Redirect: `{BETTER_AUTH_URL}/api/social/callback/linkedin`. |
-| `META_APP_ID` / `META_APP_SECRET` | Meta app. Redirect: `{BETTER_AUTH_URL}/api/social/callback/meta`. |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Cloud, YouTube Data API. Redirect: `{BETTER_AUTH_URL}/api/social/callback/youtube`. |
-| `TIKTOK_CLIENT_KEY` / `TIKTOK_CLIENT_SECRET` | TikTok app. Redirect: `{BETTER_AUTH_URL}/api/social/callback/tiktok`. |
-| `TIKTOK_PRIVACY` | Default `SELF_ONLY` until the app is approved. |
 | `MAIL_API_URL` / `MAIL_API_KEY` | Optional HTTP mail, JSON with `from`, `to`, `subject`, `text`, `html`. |
 | `OUTREACH_DAILY_LIMIT` | Maximum outreach emails sent per user per day. |
 
-Without social keys the rest of the app still works. The account page then shows which keys are missing.
+Social apps are not environment variables. On Social → Accounts each user saves the developer-app client ID and secret, then logs in at the platform to link a profile or page. The redirect URI is `{BETTER_AUTH_URL}/api/social/callback/<provider>` with provider `linkedin`, `meta`, `youtube` or `tiktok`. TikTok visibility defaults to `SELF_ONLY`.
+
+If `LINKEDIN_*`, `META_APP_*`, `GOOGLE_CLIENT_*`, `TIKTOK_CLIENT_*` or `TIKTOK_PRIVACY` are already set, they are used until that user saves credentials in the app. New setups do not need them.
 
 Instagram cannot fetch a local image. Set `BETTER_AUTH_URL` to a public address (for example a tunnel) when you want to publish to Instagram.

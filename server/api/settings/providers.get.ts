@@ -1,8 +1,9 @@
 import { requireUser } from '../../utils/auth'
 import { aiConfig, hasLanguageModel } from '../../utils/ai'
+import { socialReady } from '../../utils/social/apps'
 
 export default defineEventHandler(async (event) => {
-  await requireUser(event)
+  const user = await requireUser(event)
   const config = useRuntimeConfig()
   const ai = aiConfig()
   return {
@@ -12,11 +13,6 @@ export default defineEventHandler(async (event) => {
     textReady: hasLanguageModel(),
     imageReady: config.imageProvider !== 'none' && Boolean(config.openaiApiKey),
     mailApi: Boolean(config.mailApiUrl && config.mailApiKey),
-    social: {
-      linkedin: Boolean(config.linkedinClientId && config.linkedinClientSecret),
-      meta: Boolean(config.metaAppId && config.metaAppSecret),
-      youtube: Boolean(config.googleClientId && config.googleClientSecret),
-      tiktok: Boolean(config.tiktokClientKey && config.tiktokClientSecret),
-    },
+    social: await socialReady(user.id),
   }
 })

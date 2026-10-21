@@ -3,6 +3,7 @@ import { useDb } from '../../db/client'
 import { socialAccounts } from '../../db/schema'
 import { decrypt, encrypt } from '../crypto'
 import { id, parseJson } from '../http'
+import { socialApp } from './apps'
 import { linkedinRefresh } from './linkedin'
 import { tiktokRefresh } from './tiktok'
 import type { ConnectedAccount, TokenSet } from './types'
@@ -50,7 +51,7 @@ export async function readyAccount(accountId: string) {
   let refreshToken = row.refreshTokenEnc ? decrypt(row.refreshTokenEnc) : null
   let expiresAt = row.expiresAt
   if (expiresAt && expiresAt.getTime() < Date.now() + 60_000 && refreshToken) {
-    const next = await refresh(row.platform, refreshToken)
+    const next = await refresh(row.userId, row.platform, refreshToken)
     accessToken = next.accessToken
     refreshToken = next.refreshToken || refreshToken
     expiresAt = next.expiresAt || null
@@ -75,9 +76,11 @@ export async function readyAccount(accountId: string) {
   }
 }
 
-async function refresh(platform: string, refreshToken: string): Promise<TokenSet> {
-  if (platform === 'linkedin') return linkedinRefresh(refreshToken)
-  if (platform === 'youtube') return youtubeRefresh(refreshToken)
-  if (platform === 'tiktok') return tiktokRefresh(refreshToken)
-  return { accessToken: refreshToken }
+async function refresh(userId: string, platform: string, refreshToken: string): Promise<TokenSet> {
+  if (platform !== 'linkedin' && platform !== 'youtube' && platform !== 'tiktok') return { accessToken: refreshToken }
+  const app = await socialApp(userId, platform)
+  if (!app) throw new Error('App-gegevens ontbreken')
+  if (platform === 'linkedin') return linkedinRefresh(refreshToken, app)
+  if (platform === 'youtube') return youtubeRefresh(refreshToken, app)
+  return tiktokRefresh(refreshToken, app)
 }

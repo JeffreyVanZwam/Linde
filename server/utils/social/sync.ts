@@ -14,7 +14,7 @@ export async function syncAccount(accountId: string) {
   let posts: RemotePost[] = []
   let warning: string | null = null
   try {
-    if (account.platform === 'linkedin') posts = await linkedinRecent(account.accessToken, account.externalId)
+    if (account.platform === 'linkedin') posts = await linkedinRecent(account.accessToken, account.externalId, account.meta?.authorType)
     else if (account.platform === 'facebook' || account.platform === 'instagram') posts = await metaRecent(account)
     else if (account.platform === 'youtube') posts = await youtubeRecent(account.accessToken, account.meta?.uploadsPlaylistId || '')
     else if (account.platform === 'tiktok') posts = await tiktokRecent(account.accessToken)

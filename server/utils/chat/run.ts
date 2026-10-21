@@ -66,20 +66,52 @@ export async function streamChat(userId: string, input: z.infer<typeof chatSchem
     tools: toolsFor(userId, input.module, conversationId),
     stopWhen: stepCountIs(5),
     abortSignal: AbortSignal.timeout(120_000),
-    onFinish: async ({ text }) => {
+  })
+  const encoder = new TextEncoder()
+  let reply = ''
+  let failure = ''
+  const body = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const part of result.stream) {
+          if (part.type === 'text-delta') {
+            reply += part.text
+            controller.enqueue(encoder.encode(part.text))
+          }
+          else if (part.type === 'error') {
+            failure = modelFailure(part.error)
+          }
+        }
+      }
+      catch (error) {
+        failure = modelFailure(error)
+      }
+      const content = reply.trim() || failure || (input.locale === 'en'
+        ? 'Done. The result is saved in this module.'
+        : 'Klaar. Het resultaat staat in deze module.')
       await db.insert(messages).values({
         id: id(),
         conversationId: conversationId!,
         role: 'assistant',
-        content: text.trim() || (input.locale === 'en' ? 'Done. The result is saved in this module.' : 'Klaar. Het resultaat staat in deze module.'),
+        content,
         createdAt: new Date(),
       })
+      if (!reply.trim() && failure) controller.enqueue(encoder.encode(failure))
+      controller.close()
     },
   })
-  const response = result.toTextStreamResponse()
-  const headers = new Headers(response.headers)
-  headers.set('x-conversation-id', conversationId)
-  return new Response(response.body, { status: response.status, headers })
+  return new Response(body, {
+    headers: {
+      'content-type': 'text/plain; charset=utf-8',
+      'x-conversation-id': conversationId,
+    },
+  })
+}
+
+function modelFailure(error: unknown) {
+  if (error instanceof Error && error.message.trim()) return error.message.trim()
+  if (typeof error === 'string' && error.trim()) return error.trim()
+  return 'Het model gaf geen antwoord.'
 }
 
 function instructions(module: ChatModule) {
