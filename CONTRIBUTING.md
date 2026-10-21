@@ -1,4 +1,7 @@
 # Contributing
+## We are actively looking for contributors to this project! Check "Contributing" tab for details
+
+# Contributing
 
 Linde is a local Nuxt app, licensed under MIT. Contributions are welcome when they make a module smaller, clearer or more reliable. We welcome code contributors, translators, and many more!
 
