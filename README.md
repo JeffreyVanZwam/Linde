@@ -1,6 +1,6 @@
 # Linde
 
-## We are actively looking for contributors to this project!
+## We are actively looking for contributors to this project! Check "Contributing" tab for details
 
 Linde is a local-first marketing dashboard built with Nuxt. Register, point it at a website, and let Brain extract a brand profile. From there, chat for strategy, social posts, SEO/GEO articles and outreach. The default text model is free and needs no key. OpenAI, Anthropic and Gemini stay available when you add your own keys.
 
