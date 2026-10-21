@@ -1,9 +1,7 @@
-import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { useDb } from '../../db/client'
-import { socialConnectPending } from '../../db/schema'
 import { decrypt, encrypt } from '../crypto'
-import { apiError, id } from '../http'
+import { apiError } from '../http'
+import { createRecord, filterOf, firstRecord, removeRecord } from '../pb'
 
 const optionSchema = z.object({
   externalId: z.string().min(1),
@@ -26,18 +24,20 @@ export type LinkedInPending = z.infer<typeof payloadSchema>
 
 const ttlMs = 15 * 60 * 1000
 
+function asDate(value: unknown) {
+  if (typeof value !== 'string' || !value) return null
+  const parsed = new Date(value.includes('T') ? value : value.replace(' ', 'T'))
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 export async function saveConnectPending(userId: string, provider: 'linkedin' | 'meta', payload: LinkedInPending) {
-  const pendingId = id()
-  const now = new Date()
-  await useDb().insert(socialConnectPending).values({
-    id: pendingId,
-    userId,
+  const row = await createRecord('social_connect_pending', {
+    user: userId,
     provider,
     payloadEnc: encrypt(JSON.stringify(payload)),
-    expiresAt: new Date(now.getTime() + ttlMs),
-    createdAt: now,
+    expiresAt: new Date(Date.now() + ttlMs).toISOString(),
   })
-  return pendingId
+  return row.id
 }
 
 export function saveLinkedInPending(userId: string, payload: LinkedInPending) {
@@ -45,23 +45,25 @@ export function saveLinkedInPending(userId: string, payload: LinkedInPending) {
 }
 
 export async function readLinkedInPending(userId: string, pendingId: string) {
-  const db = useDb()
-  const row = await db.query.socialConnectPending.findFirst({
-    where: and(eq(socialConnectPending.id, pendingId), eq(socialConnectPending.userId, userId)),
-  })
+  const row = await firstRecord('social_connect_pending', await filterOf(
+    'id = {:id} && user = {:user}',
+    { id: pendingId, user: userId },
+  ))
   if (!row || (row.provider !== 'linkedin' && row.provider !== 'meta')) apiError(404, 'De accountkeuze is niet gevonden')
-  if (row.expiresAt.getTime() < Date.now()) {
-    await db.delete(socialConnectPending).where(eq(socialConnectPending.id, row.id))
+  const expiresAt = asDate(row.expiresAt)
+  if (!expiresAt || expiresAt.getTime() < Date.now()) {
+    await removeRecord('social_connect_pending', row.id)
     apiError(410, 'De accountkeuze is verlopen. Koppel opnieuw.')
   }
-  const parsed = payloadSchema.safeParse(JSON.parse(decrypt(row.payloadEnc)))
+  const parsed = payloadSchema.safeParse(JSON.parse(decrypt(String(row.payloadEnc || ''))))
   if (!parsed.success) apiError(400, 'De accountkeuze is ongeldig')
-  return { row, payload: parsed.data }
+  return { payload: parsed.data }
 }
 
 export async function deleteLinkedInPending(userId: string, pendingId: string) {
-  await useDb().delete(socialConnectPending).where(and(
-    eq(socialConnectPending.id, pendingId),
-    eq(socialConnectPending.userId, userId),
+  const row = await firstRecord('social_connect_pending', await filterOf(
+    'id = {:id} && user = {:user}',
+    { id: pendingId, user: userId },
   ))
+  if (row) await removeRecord('social_connect_pending', row.id)
 }
