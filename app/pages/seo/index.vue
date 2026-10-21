@@ -43,5 +43,11 @@ const articles = await api<Array<{ id: string, title: string, url: string }>>('/
         </a>
       </UiCard>
     </div>
+    <section class="space-y-3">
+      <h2 class="font-serif text-2xl">
+        {{ t('chat.list') }}
+      </h2>
+      <ChatList module="seo" />
+    </section>
   </div>
 </template>

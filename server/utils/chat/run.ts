@@ -1,13 +1,10 @@
 import { stepCountIs, streamText, tool } from 'ai'
-import { and, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { chatModules, platformLimits, socialPlatforms, type ChatModule } from '~~/shared/platforms'
-import { useDb } from '../../db/client'
-import { articleDrafts, conversations, messages, outreachCampaigns, outreachSteps, siteArticles, socialAccounts, socialPostTargets, socialPosts } from '../../db/schema'
-import { getLanguageModel } from '../ai'
+import { aiConfig, getLanguageModel } from '../ai'
 import { brandInstructions, getBrand } from '../brand'
 import { duplicateWarning } from '../similarity'
-import { id } from '../http'
+import { createCampaign, createConversation, createDraft, createMessage, createPost, createStep, createTarget, findConversation, listMessages, listPosts, listSiteArticles, listSocialAccounts, touchConversation } from '../store'
 
 const chatSchema = z.object({
   module: z.enum(chatModules),
@@ -21,97 +18,76 @@ export function parseChat(data: unknown) {
 }
 
 export async function streamChat(userId: string, input: z.infer<typeof chatSchema>) {
-  const db = useDb()
-  const now = new Date()
   let conversationId = input.conversationId
   if (conversationId) {
-    const existing = await db.query.conversations.findFirst({
-      where: and(eq(conversations.id, conversationId), eq(conversations.userId, userId)),
-    })
+    const existing = await findConversation(conversationId, userId)
     if (!existing || existing.module !== input.module) {
       throw createError({ statusCode: 404, statusMessage: 'Gesprek niet gevonden' })
     }
   }
   else {
-    conversationId = id()
-    await db.insert(conversations).values({
-      id: conversationId,
+    conversationId = await createConversation({
       userId,
       module: input.module,
       title: input.content.slice(0, 80),
-      createdAt: now,
-      updatedAt: now,
     })
   }
-  await db.insert(messages).values({
-    id: id(),
-    conversationId,
-    role: 'user',
-    content: input.content,
-    createdAt: now,
-  })
-  await db.update(conversations).set({ updatedAt: now }).where(eq(conversations.id, conversationId))
-  const history = await db.query.messages.findMany({
-    where: eq(messages.conversationId, conversationId),
-    orderBy: messages.createdAt,
-  })
+  await createMessage({ conversationId, role: 'user', content: input.content })
+  await touchConversation(conversationId)
+  const history = await listMessages(conversationId)
   const brand = await getBrand(userId)
   const language = input.locale === 'en' ? 'Answer in English.' : 'Antwoord in het Nederlands.'
+  const ai = aiConfig()
+  const fallback = input.locale === 'en'
+    ? 'Done. The result is saved in this module.'
+    : 'Klaar. Het resultaat staat in deze module.'
+  let saved = false
+  async function saveAssistant(content: string) {
+    if (saved) return
+    saved = true
+    await createMessage({ conversationId: conversationId!, role: 'assistant', content })
+  }
   const result = streamText({
     model: getLanguageModel(),
+    maxRetries: ai.tier === 'free' ? 0 : 2,
     instructions: `${language}\n\n${instructions(input.module)}\n\nMerkprofiel:\n${brandInstructions(brand)}`,
     messages: history
       .filter(message => message.role === 'user' || message.role === 'assistant')
       .map(message => ({ role: message.role as 'user' | 'assistant', content: message.content })),
     tools: toolsFor(userId, input.module, conversationId),
     stopWhen: stepCountIs(5),
-    abortSignal: AbortSignal.timeout(120_000),
-  })
-  const encoder = new TextEncoder()
-  let reply = ''
-  let failure = ''
-  const body = new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const part of result.stream) {
-          if (part.type === 'text-delta') {
-            reply += part.text
-            controller.enqueue(encoder.encode(part.text))
-          }
-          else if (part.type === 'error') {
-            failure = modelFailure(part.error)
-          }
-        }
-      }
-      catch (error) {
-        failure = modelFailure(error)
-      }
-      const content = reply.trim() || failure || (input.locale === 'en'
-        ? 'Done. The result is saved in this module.'
-        : 'Klaar. Het resultaat staat in deze module.')
-      await db.insert(messages).values({
-        id: id(),
-        conversationId: conversationId!,
-        role: 'assistant',
-        content,
-        createdAt: new Date(),
-      })
-      if (!reply.trim() && failure) controller.enqueue(encoder.encode(failure))
-      controller.close()
+    abortSignal: AbortSignal.timeout(180_000),
+    onError: async ({ error }) => {
+      await saveAssistant(failureText(error, input.locale))
+    },
+    onFinish: async ({ text, toolCalls, steps }) => {
+      await saveAssistant(replyText(text, toolCalls, steps, fallback))
     },
   })
-  return new Response(body, {
-    headers: {
-      'content-type': 'text/plain; charset=utf-8',
-      'x-conversation-id': conversationId,
-    },
-  })
+  const response = result.toTextStreamResponse()
+  const headers = new Headers(response.headers)
+  headers.set('x-conversation-id', conversationId)
+  return new Response(response.body, { status: response.status, headers })
 }
 
-function modelFailure(error: unknown) {
-  if (error instanceof Error && error.message.trim()) return error.message.trim()
-  if (typeof error === 'string' && error.trim()) return error.trim()
-  return 'Het model gaf geen antwoord.'
+function replyText(text: string, toolCalls: readonly unknown[], steps: readonly { text: string }[], fallback: string) {
+  const prose = steps
+    .map(step => step.text.trim())
+    .filter(part => part.length > 0 && !part.startsWith('{') && !part.startsWith('['))
+  if (prose.length) return prose.join('\n\n')
+  if (toolCalls.length) return fallback
+  return text.trim() || fallback
+}
+
+function failureText(error: unknown, locale: 'nl' | 'en') {
+  const message = error instanceof Error ? error.message : ''
+  const retry = message.match(/retry after (\d+)/i)?.[1]
+  if (locale === 'en') {
+    if (retry) return `The free model is busy. Try again in ${retry} seconds.`
+    return message ? `The model did not answer. ${message.slice(0, 280)}` : 'The model did not answer.'
+  }
+  if (retry) return `Het gratis model is even bezet. Probeer het over ${retry} seconden opnieuw.`
+  return message ? `Het model gaf geen antwoord. ${message.slice(0, 280)}` : 'Het model gaf geen antwoord.'
 }
 
 function instructions(module: ChatModule) {
@@ -140,11 +116,7 @@ function socialTools(userId: string, conversationId: string) {
       description: 'Lees recente posts van gekoppelde accounts om duplicaten te vermijden.',
       inputSchema: z.object({}),
       execute: async () => {
-        const posts = await useDb().query.socialPosts.findMany({
-          where: eq(socialPosts.userId, userId),
-          orderBy: desc(socialPosts.createdAt),
-          limit: 20,
-        })
+        const posts = await listPosts(userId, 20)
         return posts.map(post => ({ body: post.body.slice(0, 400), status: post.status, source: post.source }))
       },
     }),
@@ -160,26 +132,16 @@ function socialTools(userId: string, conversationId: string) {
         })).min(1),
       }),
       execute: async (input) => {
-        const db = useDb()
-        const accounts = await db.query.socialAccounts.findMany({ where: eq(socialAccounts.userId, userId) })
-        const recent = await db.query.socialPosts.findMany({
-          where: eq(socialPosts.userId, userId),
-          orderBy: desc(socialPosts.createdAt),
-          limit: 30,
-        })
+        const accounts = await listSocialAccounts(userId)
+        const recent = await listPosts(userId, 30)
         const warning = duplicateWarning(input.body, recent.map(post => post.body))
-        const postId = id()
-        const now = new Date()
-        await db.insert(socialPosts).values({
-          id: postId,
+        const postId = await createPost({
           userId,
           conversationId,
           body: input.body,
           status: 'draft',
           source: 'local',
           duplicateWarning: warning,
-          createdAt: now,
-          updatedAt: now,
         })
         const missing: string[] = []
         for (const target of input.targets) {
@@ -189,8 +151,7 @@ function socialTools(userId: string, conversationId: string) {
             continue
           }
           const limit = platformLimits[target.platform]
-          await db.insert(socialPostTargets).values({
-            id: id(),
+          await createTarget({
             postId,
             accountId: account.id,
             platform: target.platform,
@@ -211,7 +172,7 @@ function seoTools(userId: string, conversationId: string) {
       description: 'Toon artikelen die al op de site staan.',
       inputSchema: z.object({}),
       execute: async () => {
-        const articles = await useDb().query.siteArticles.findMany({ where: eq(siteArticles.userId, userId) })
+        const articles = await listSiteArticles(userId)
         return articles.map(article => ({ title: article.title, url: article.url, excerpt: article.excerpt }))
       },
     }),
@@ -230,10 +191,7 @@ function seoTools(userId: string, conversationId: string) {
         jsonLd: z.record(z.string(), z.unknown()),
       }),
       execute: async (input) => {
-        const draftId = id()
-        const now = new Date()
-        await useDb().insert(articleDrafts).values({
-          id: draftId,
+        const draftId = await createDraft({
           userId,
           conversationId,
           title: input.title,
@@ -241,13 +199,11 @@ function seoTools(userId: string, conversationId: string) {
           metaTitle: input.metaTitle,
           metaDescription: input.metaDescription,
           markdown: input.markdown,
-          faqJson: JSON.stringify(input.faq),
-          jsonLd: JSON.stringify(input.jsonLd),
-          keywordsJson: JSON.stringify(input.keywords),
-          internalLinksJson: JSON.stringify(input.internalLinks),
+          faq: input.faq,
+          jsonLd: input.jsonLd,
+          keywords: input.keywords,
+          internalLinks: input.internalLinks,
           geoNotes: input.geoNotes,
-          createdAt: now,
-          updatedAt: now,
         })
         return { draftId, title: input.title }
       },
@@ -271,11 +227,7 @@ function outreachTools(userId: string, conversationId: string) {
         })).min(1).max(6),
       }),
       execute: async (input) => {
-        const campaignId = id()
-        const now = new Date()
-        const db = useDb()
-        await db.insert(outreachCampaigns).values({
-          id: campaignId,
+        const campaignId = await createCampaign({
           userId,
           conversationId,
           name: input.name,
@@ -283,12 +235,9 @@ function outreachTools(userId: string, conversationId: string) {
           audience: input.audience,
           offer: input.offer,
           status: 'draft',
-          createdAt: now,
-          updatedAt: now,
         })
         for (const [index, step] of input.steps.entries()) {
-          await db.insert(outreachSteps).values({
-            id: id(),
+          await createStep({
             campaignId,
             position: index,
             delayHours: step.delayHours,

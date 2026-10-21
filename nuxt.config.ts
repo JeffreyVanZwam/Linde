@@ -29,7 +29,7 @@ export default defineNuxtConfig({
   vite: {
     plugins: [tailwindcss()],
     optimizeDeps: {
-      include: ['motion-v', 'cropperjs', 'better-auth/vue'],
+      include: ['motion-v', 'cropperjs', 'pocketbase'],
     },
   },
   vue: {
@@ -53,9 +53,14 @@ export default defineNuxtConfig({
     detectBrowserLanguage: false,
   },
   runtimeConfig: {
-    databaseUrl: process.env.DATABASE_URL || 'file:.data/app.db',
+    pocketbaseUrl: process.env.POCKETBASE_URL || 'http://127.0.0.1:8090',
+    pocketbaseAdminEmail: process.env.POCKETBASE_ADMIN_EMAIL || 'admin@linde.local',
+    pocketbaseAdminPassword: process.env.POCKETBASE_ADMIN_PASSWORD || 'linde-local-admin',
     encryptionKey: process.env.ENCRYPTION_KEY || '',
-    aiProvider: process.env.AI_PROVIDER || 'openai',
+    aiProvider: process.env.AI_PROVIDER || 'free',
+    freeBaseUrl: process.env.FREE_BASE_URL || 'https://text.pollinations.ai/v1',
+    freeModel: process.env.FREE_MODEL || 'openai-fast',
+    freeApiKey: process.env.FREE_API_KEY || '',
     openaiApiKey: process.env.OPENAI_API_KEY || '',
     anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
     geminiApiKey: process.env.GEMINI_API_KEY || '',
@@ -68,9 +73,10 @@ export default defineNuxtConfig({
     mailApiKey: process.env.MAIL_API_KEY || '',
     outreachDailyLimit: process.env.OUTREACH_DAILY_LIMIT || '50',
     public: {
-      aiProvider: process.env.AI_PROVIDER || 'openai',
+      aiProvider: process.env.AI_PROVIDER || 'free',
       imageProvider: process.env.IMAGE_PROVIDER || 'openai',
-      appUrl: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+      pocketbaseUrl: process.env.POCKETBASE_URL || 'http://127.0.0.1:8090',
+      appUrl: process.env.APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000',
     },
   },
   nitro: {

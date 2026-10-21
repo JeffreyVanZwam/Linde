@@ -1,6 +1,5 @@
-import { readFile, stat } from 'node:fs/promises'
+import { fileBlob } from '../bytes'
 import { appBaseUrl } from '../http'
-import { absoluteMediaPath } from '../media'
 import { formPost, jsonRequest, readString } from './http'
 import type { OAuthApp, PublishInput, PublishResult, RemotePost, TokenSet } from './types'
 
@@ -71,14 +70,13 @@ export async function youtubeRecent(token: string, playlistId: string): Promise<
 
 export async function youtubePublish(token: string, input: PublishInput): Promise<PublishResult> {
   if (!input.video) throw new Error('YouTube heeft een videobestand nodig')
-  const filePath = absoluteMediaPath(input.video.path)
-  const info = await stat(filePath)
+  const bytes = input.video.bytes
   const start = await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
     method: 'POST',
     headers: {
       authorization: `Bearer ${token}`,
       'content-type': 'application/json; charset=UTF-8',
-      'x-upload-content-length': String(info.size),
+      'x-upload-content-length': String(bytes.length),
       'x-upload-content-type': input.video.mime,
     },
     body: JSON.stringify({
@@ -89,11 +87,10 @@ export async function youtubePublish(token: string, input: PublishInput): Promis
   if (!start.ok) throw new Error(await start.text())
   const uploadUrl = start.headers.get('location')
   if (!uploadUrl) throw new Error('YouTube gaf geen upload-URL terug')
-  const bytes = await readFile(filePath)
   const uploaded = await fetch(uploadUrl, {
     method: 'PUT',
     headers: { 'content-type': input.video.mime, 'content-length': String(bytes.length) },
-    body: bytes,
+    body: fileBlob(bytes, input.video.mime),
   })
   const data = await uploaded.json() as Record<string, unknown>
   if (!uploaded.ok) throw new Error(JSON.stringify(data).slice(0, 300))

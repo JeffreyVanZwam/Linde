@@ -1,9 +1,7 @@
-import { eq } from 'drizzle-orm'
-import { useDb } from '../../db/client'
-import { siteArticles } from '../../db/schema'
 import { requireUser } from '../../utils/auth'
+import { listSiteArticles } from '../../utils/store'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
-  return useDb().query.siteArticles.findMany({ where: eq(siteArticles.userId, user.id) })
+  return listSiteArticles(user.id)
 })

@@ -52,6 +52,7 @@ async function approveAll() {
 
 <template>
   <div class="space-y-6">
+    <AppBack to="/outreach" />
     <div>
       <h1 class="font-serif text-5xl">
         {{ data.campaign.name }}

@@ -1,15 +1,13 @@
 import nodemailer from 'nodemailer'
-import { eq } from 'drizzle-orm'
-import { useDb } from '../../db/client'
-import { smtpConnections } from '../../db/schema'
 import { decrypt, signValue } from '../crypto'
 import { appBaseUrl } from '../http'
+import { findSmtp } from '../store'
 
 export async function sendOutreachMail(userId: string, message: { to: string, subject: string, body: string, recipientId: string }) {
   const footer = unsubscribeFooter(message.recipientId)
   const text = `${message.body}\n\n${footer.text}`
   const html = `<div>${escapeHtml(message.body).replaceAll('\n', '<br>')}</div><p style="color:#57534e;font-size:12px">${escapeHtml(footer.text)} <a href="${footer.url}">${footer.url}</a></p>`
-  const smtp = await useDb().query.smtpConnections.findFirst({ where: eq(smtpConnections.userId, userId) })
+  const smtp = await findSmtp(userId)
   if (smtp) {
     const transporter = nodemailer.createTransport({
       host: smtp.host,

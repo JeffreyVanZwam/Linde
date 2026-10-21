@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio'
 import { generateObject } from 'ai'
 import { z } from 'zod'
-import { getLanguageModel, hasLanguageModel } from '../ai'
+import { aiConfig, getLanguageModel, hasLanguageModel } from '../ai'
 import { saveMedia } from '../media'
 
 const brandSchema = z.object({
@@ -49,27 +49,29 @@ export async function extractBrand(userId: string, websiteUrl: string, locale: '
   let narrative = heuristic
   if (hasLanguageModel()) {
     try {
-    const { object } = await generateObject({
-      model: getLanguageModel(),
-      schema: brandSchema,
-      abortSignal: AbortSignal.timeout(25_000),
-      prompt: [
-        locale === 'en'
-          ? 'Extract a brand profile from this website. Write in English. Keep the tone description concrete and usable by a copywriter.'
-          : 'Extraheer een merkprofiel uit deze website. Schrijf in het Nederlands. De tone-of-voice moet concreet genoeg zijn voor een copywriter.',
-        `URL: ${page.finalUrl}`,
-        `Titel: ${page.title}`,
-        `Beschrijving: ${page.description}`,
-        `Kleuren: ${page.colors.join(', ')}`,
-        `Fonts: ${page.fonts.join(', ')}`,
-        `Tekst:\n${page.text.slice(0, 8000)}`,
-      ].join('\n\n'),
-    })
-    narrative = {
-      ...object,
-      colors: object.colors.length ? object.colors : heuristic.colors,
-      fonts: object.fonts.length ? object.fonts : heuristic.fonts,
-    }
+      const ai = aiConfig()
+      const { object } = await generateObject({
+        model: getLanguageModel(),
+        maxRetries: ai.tier === 'free' ? 0 : 2,
+        schema: brandSchema,
+        abortSignal: AbortSignal.timeout(25_000),
+        prompt: [
+          locale === 'en'
+            ? 'Extract a brand profile from this website. Write in English. Keep the tone description concrete and usable by a copywriter.'
+            : 'Extraheer een merkprofiel uit deze website. Schrijf in het Nederlands. De tone-of-voice moet concreet genoeg zijn voor een copywriter.',
+          `URL: ${page.finalUrl}`,
+          `Titel: ${page.title}`,
+          `Beschrijving: ${page.description}`,
+          `Kleuren: ${page.colors.join(', ')}`,
+          `Fonts: ${page.fonts.join(', ')}`,
+          `Tekst:\n${page.text.slice(0, 8000)}`,
+        ].join('\n\n'),
+      })
+      narrative = {
+        ...object,
+        colors: object.colors.length ? object.colors : heuristic.colors,
+        fonts: object.fonts.length ? object.fonts : heuristic.fonts,
+      }
     }
     catch {
       narrative = heuristic

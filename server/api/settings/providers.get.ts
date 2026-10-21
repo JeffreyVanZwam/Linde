@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
   const ai = aiConfig()
   return {
     aiProvider: ai.provider,
+    tier: ai.tier,
     model: ai.model,
     imageProvider: config.public.imageProvider,
     textReady: hasLanguageModel(),

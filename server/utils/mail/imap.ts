@@ -1,11 +1,9 @@
 import { ImapFlow } from 'imapflow'
-import { eq } from 'drizzle-orm'
-import { useDb } from '../../db/client'
-import { smtpConnections } from '../../db/schema'
 import { decrypt } from '../crypto'
+import { findSmtp } from '../store'
 
 export async function hasReply(userId: string, fromEmail: string) {
-  const smtp = await useDb().query.smtpConnections.findFirst({ where: eq(smtpConnections.userId, userId) })
+  const smtp = await findSmtp(userId)
   if (!smtp?.imapHost || !smtp.imapPort) return false
   const client = new ImapFlow({
     host: smtp.imapHost,

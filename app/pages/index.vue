@@ -4,10 +4,9 @@ const localePath = useLocalePath()
 const me = useState<{ user: { name: string }, brand: { companyName: string | null, toneOfVoice: string | null, colors: string[] } | null }>('me')
 
 const api = useRequestFetch()
-const [posts, campaigns, chats] = await Promise.all([
+const [posts, campaigns] = await Promise.all([
   api<Array<{ id: string, body: string, status: string, scheduledAt: string | null }>>('/api/social/posts'),
   api<Array<{ id: string, name: string, status: string }>>('/api/outreach/campaigns'),
-  api<Array<{ id: string, title: string, module: string }>>('/api/conversations'),
 ])
 
 const upcoming = computed(() => posts.filter(post => post.status === 'scheduled').slice(0, 5))
@@ -64,17 +63,7 @@ const upcoming = computed(() => posts.filter(post => post.status === 'scheduled'
         <h2 class="font-serif text-2xl">
           {{ t('home.chats') }}
         </h2>
-        <p v-if="!chats.length" class="mt-3 text-sm text-stone-500">
-          {{ t('home.emptyChats') }}
-        </p>
-        <NuxtLink
-          v-for="chat in chats.slice(0, 5)"
-          :key="chat.id"
-          :to="localePath(chat.module === 'strategy' ? `/strategy/${chat.id}` : `/${chat.module === 'social' ? 'social/chat' : chat.module === 'seo' ? 'seo/chat' : 'outreach/chat'}/${chat.id}`)"
-          class="mt-3 block text-sm"
-        >
-          {{ chat.title }}
-        </NuxtLink>
+        <ChatList class="mt-3" plain :limit="5" :empty="t('home.emptyChats')" />
       </UiCard>
     </div>
   </div>

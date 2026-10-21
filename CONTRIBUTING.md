@@ -9,7 +9,7 @@ Linde is a local Nuxt app, licensed under MIT. Contributions are welcome when th
 3. Copy `.env.example` to `.env` and fill in the secrets.
 4. `corepack pnpm dev`
 
-A clean install does not need a separate migration: `server/db/ensure.ts` creates the tables. After a schema change, update both `server/db/schema.ts` and `server/db/ensure.ts`, then run `corepack pnpm db:push` on an existing database.
+`corepack pnpm dev` starts Nuxt and PocketBase. Data lives in `.data/pb`. After a schema change, add a migration under `pocketbase/pb_migrations` and restart PocketBase. `corepack pnpm pb` starts only the database.
 
 ## Conventions
 

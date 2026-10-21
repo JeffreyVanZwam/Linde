@@ -16,7 +16,7 @@ The existing adapters live in `server/utils/social/`. Each platform has the same
 
 ## Rules
 
-- The redirect URI is always `{BETTER_AUTH_URL}/api/social/callback/<provider>`.
+- The redirect URI is always `{APP_URL}/api/social/callback/<provider>`.
 - A failed history sync must not undo the connection. Return the error as `warning`.
 - Publish only targets that belong to the signed-in user. `publishPost` does that through the post record.
 - Do not write tokens to the logs.

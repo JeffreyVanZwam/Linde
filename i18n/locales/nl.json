@@ -15,6 +15,7 @@
     "menu": "Menu",
     "home": "Home",
     "brain": "Brain",
+    "files": "Bestanden",
     "strategy": "Strategie",
     "social": "Social",
     "seo": "SEO / GEO",
@@ -54,7 +55,25 @@
     "colors": "Kleuren",
     "fonts": "Fonts",
     "website": "Website",
-    "save": "Profiel opslaan"
+    "save": "Profiel opslaan",
+    "files": "Logo en beelden staan in de map Brain bij je bestanden."
+  },
+  "files": {
+    "title": "Bestanden",
+    "lead": "Mappen voor uploads, bewerkingen en wat Brain van je website haalt. Wijzigingen komen live binnen.",
+    "newFolder": "Nieuwe map",
+    "folderName": "Mapnaam",
+    "upload": "Uploaden",
+    "empty": "Deze map is leeg.",
+    "root": "Alle bestanden",
+    "rename": "Hernoemen",
+    "move": "Verplaatsen",
+    "delete": "Verwijderen",
+    "deleteFolder": "Deze map en alles erin verwijderen?",
+    "deleteFile": "Dit bestand verwijderen?",
+    "cancel": "Annuleren",
+    "brain": "Brain",
+    "rootOption": "Hoofdmap"
   },
   "home": {
     "welcome": "Hallo {name}",
@@ -168,20 +187,50 @@
   },
   "settings": {
     "title": "Instellingen",
-    "lead": "AI-sleutels blijven in .env. Hier zie je wat er actief is.",
+    "lead": "Het gratis tekstmodel staat standaard aan. Betaalde sleutels blijven in .env.",
     "theme": "Thema",
     "text": "Tekstmodel",
+    "free": "Gratis",
+    "noKey": "Geen sleutel nodig",
     "image": "Afbeeldingen",
     "ready": "Klaar",
     "missing": "Sleutel ontbreekt",
     "notSet": "Nog niet ingesteld",
-    "off": "Uit"
+    "off": "Uit",
+    "storage": "Opslag",
+    "storageLead": "Bestanden staan lokaal in PocketBase, of in een S3-bucket. Dit geldt voor de hele installatie.",
+    "local": "Lokaal",
+    "s3": "S3",
+    "bucket": "Bucket",
+    "region": "Regio",
+    "endpoint": "Endpoint",
+    "accessKey": "Access key",
+    "secret": "Secret",
+    "secretKeep": "Laat leeg om de huidige secret te houden",
+    "pathStyle": "Path-style URL's",
+    "test": "Verbinding testen",
+    "tested": "Verbinding gelukt",
+    "adminOnly": "Alleen beheerders kunnen de opslag wijzigen.",
+    "users": "Gebruikers",
+    "usersLead": "Accounts van PocketBase. De eerste gebruiker is beheerder.",
+    "role": "Rol",
+    "admin": "Beheerder",
+    "member": "Lid",
+    "createUser": "Gebruiker toevoegen",
+    "profile": "Je account",
+    "passwordNew": "Nieuw wachtwoord",
+    "passwordOld": "Huidig wachtwoord"
   },
   "chat": {
     "placeholder": "Schrijf een bericht",
     "send": "Versturen",
     "you": "Jij",
-    "assistant": "Assistent"
+    "assistant": "Assistent",
+    "list": "Gesprekken",
+    "empty": "Nog geen gesprekken.",
+    "delete": "Verwijderen",
+    "deleteNamed": "Verwijder {title}",
+    "confirmDelete": "Dit gesprek verwijderen? De berichten worden gewist."
   },
   "unsubscribe": {
     "title": "Afgemeld",
@@ -192,6 +241,7 @@
     "save": "Opslaan",
     "loading": "Bezig…",
     "error": "Er ging iets mis",
-    "language": "Taal"
+    "language": "Taal",
+    "back": "Vorige"
   }
 }

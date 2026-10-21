@@ -1,7 +1,4 @@
-import { eq } from 'drizzle-orm'
-import { useDb } from '../../db/client'
-import { siteArticles } from '../../db/schema'
-import { id } from '../http'
+import { replaceSiteArticles } from '../store'
 import { articlesFromListing, isListingArticleUrl, isSitemapIndex, isSitemapUrl, sitemapLocations, titleFromPath, type ListingArticle } from './listing'
 
 const MAX_ARTICLES = 80
@@ -23,18 +20,13 @@ export async function refreshArticles(userId: string, articlesUrl: string) {
   const pages = articlesFromListing(html, page.href)
   if (pages.size === 0) await collectFromSitemap(page, pages)
 
-  const db = useDb()
-  await db.delete(siteArticles).where(eq(siteArticles.userId, userId))
-  const now = new Date()
   const rows = [...pages.entries()].slice(0, MAX_ARTICLES).map(([url, article]) => ({
-    id: id(),
-    userId,
     url,
     title: article.title || url,
     excerpt: article.excerpt.slice(0, 280),
-    createdAt: now,
   }))
-  if (rows.length) await db.insert(siteArticles).values(rows)
+  if (rows.length) await replaceSiteArticles(userId, rows)
+  else await replaceSiteArticles(userId, [])
   return rows.length
 }
 

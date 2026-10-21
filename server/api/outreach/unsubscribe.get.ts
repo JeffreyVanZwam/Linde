@@ -1,7 +1,5 @@
-import { and, eq, inArray } from 'drizzle-orm'
-import { useDb } from '../../db/client'
-import { outreachMessages, outreachRecipients } from '../../db/schema'
 import { verifyValue } from '../../utils/crypto'
+import { cancelOpenMessages, updateRecipient } from '../../utils/store'
 
 export default defineEventHandler(async (event) => {
   const id = String(getQuery(event).id || '')
@@ -9,11 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!id || !verifyValue(id, token)) {
     throw createError({ statusCode: 400, statusMessage: 'Ongeldige afmeldlink' })
   }
-  const db = useDb()
-  await db.update(outreachRecipients).set({ status: 'unsubscribed' }).where(eq(outreachRecipients.id, id))
-  await db.update(outreachMessages).set({ status: 'cancelled' }).where(and(
-    eq(outreachMessages.recipientId, id),
-    inArray(outreachMessages.status, ['draft', 'approved', 'scheduled']),
-  ))
+  await updateRecipient(id, { status: 'unsubscribed' })
+  await cancelOpenMessages(id)
   return { ok: true }
 })

@@ -1,8 +1,6 @@
-import { and, eq } from 'drizzle-orm'
-import { useDb } from '../../db/client'
-import { socialAccounts } from '../../db/schema'
 import { decrypt, encrypt } from '../crypto'
-import { id, parseJson } from '../http'
+import { parseJson } from '../http'
+import { createSocialAccount, findSocialAccount, findSocialAccountMatch, updateSocialAccount } from '../store'
 import { socialApp } from './apps'
 import { linkedinRefresh } from './linkedin'
 import { tiktokRefresh } from './tiktok'
@@ -10,42 +8,28 @@ import type { ConnectedAccount, TokenSet } from './types'
 import { youtubeRefresh } from './youtube'
 
 export async function upsertSocialAccount(userId: string, account: ConnectedAccount) {
-  const db = useDb()
-  const existing = await db.query.socialAccounts.findFirst({
-    where: and(
-      eq(socialAccounts.userId, userId),
-      eq(socialAccounts.platform, account.platform),
-      eq(socialAccounts.externalId, account.externalId),
-    ),
-  })
-  const now = new Date()
+  const existing = await findSocialAccountMatch(userId, account.platform, account.externalId)
   const values = {
     displayName: account.displayName,
     accessTokenEnc: encrypt(account.accessToken),
     refreshTokenEnc: account.refreshToken ? encrypt(account.refreshToken) : existing?.refreshTokenEnc || null,
     expiresAt: account.expiresAt || null,
     metaJson: JSON.stringify(account.meta || {}),
-    updatedAt: now,
   }
   if (existing) {
-    await db.update(socialAccounts).set(values).where(eq(socialAccounts.id, existing.id))
+    await updateSocialAccount(existing.id, values)
     return existing.id
   }
-  const accountId = id()
-  await db.insert(socialAccounts).values({
-    id: accountId,
+  return createSocialAccount({
     userId,
     platform: account.platform,
     externalId: account.externalId,
-    createdAt: now,
     ...values,
   })
-  return accountId
 }
 
 export async function readyAccount(accountId: string) {
-  const db = useDb()
-  const row = await db.query.socialAccounts.findFirst({ where: eq(socialAccounts.id, accountId) })
+  const row = await findSocialAccount(accountId)
   if (!row) throw new Error('Account niet gevonden')
   let accessToken = decrypt(row.accessTokenEnc)
   let refreshToken = row.refreshTokenEnc ? decrypt(row.refreshTokenEnc) : null
@@ -55,12 +39,11 @@ export async function readyAccount(accountId: string) {
     accessToken = next.accessToken
     refreshToken = next.refreshToken || refreshToken
     expiresAt = next.expiresAt || null
-    await db.update(socialAccounts).set({
+    await updateSocialAccount(row.id, {
       accessTokenEnc: encrypt(accessToken),
       refreshTokenEnc: refreshToken ? encrypt(refreshToken) : null,
       expiresAt,
-      updatedAt: new Date(),
-    }).where(eq(socialAccounts.id, row.id))
+    })
   }
   return {
     row,

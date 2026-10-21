@@ -1,6 +1,5 @@
-import { readFile, stat } from 'node:fs/promises'
+import { fileBlob } from '../bytes'
 import { appBaseUrl } from '../http'
-import { absoluteMediaPath } from '../media'
 import { formPost, jsonRequest, readString } from './http'
 import type { OAuthApp, PublishInput, PublishResult, RemotePost, TokenSet } from './types'
 
@@ -65,8 +64,7 @@ export async function tiktokRecent(token: string): Promise<RemotePost[]> {
 
 export async function tiktokPublish(token: string, input: PublishInput, privacy = 'SELF_ONLY'): Promise<PublishResult> {
   if (!input.video) throw new Error('TikTok heeft een videobestand nodig')
-  const filePath = absoluteMediaPath(input.video.path)
-  const info = await stat(filePath)
+  const bytes = input.video.bytes
   const init = await jsonRequest('https://open.tiktokapis.com/v2/post/publish/video/init/', {
     method: 'POST',
     token,
@@ -80,8 +78,8 @@ export async function tiktokPublish(token: string, input: PublishInput, privacy 
       },
       source_info: {
         source: 'FILE_UPLOAD',
-        video_size: info.size,
-        chunk_size: info.size,
+        video_size: bytes.length,
+        chunk_size: bytes.length,
         total_chunk_count: 1,
       },
     },
@@ -90,7 +88,6 @@ export async function tiktokPublish(token: string, input: PublishInput, privacy 
   const uploadUrl = readString(data, 'upload_url')
   const publishId = readString(data, 'publish_id')
   if (!uploadUrl) throw new Error('TikTok gaf geen upload-URL terug')
-  const bytes = await readFile(filePath)
   const uploaded = await fetch(uploadUrl, {
     method: 'PUT',
     headers: {
@@ -98,7 +95,7 @@ export async function tiktokPublish(token: string, input: PublishInput, privacy 
       'content-length': String(bytes.length),
       'content-range': `bytes 0-${bytes.length - 1}/${bytes.length}`,
     },
-    body: bytes,
+    body: fileBlob(bytes, input.video.mime),
   })
   if (!uploaded.ok) throw new Error(await uploaded.text())
   return { externalId: publishId }

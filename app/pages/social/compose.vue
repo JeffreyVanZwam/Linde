@@ -106,7 +106,9 @@ async function retry() {
 </script>
 
 <template>
-  <form class="mx-auto max-w-3xl space-y-5" @submit.prevent="save('draft')">
+  <div class="mx-auto max-w-3xl space-y-5">
+    <AppBack to="/social" />
+    <form class="space-y-5" @submit.prevent="save('draft')">
     <h1 class="font-serif text-5xl">
       {{ t('social.compose') }}
     </h1>
@@ -174,5 +176,6 @@ async function retry() {
         {{ t('social.retry') }}
       </UiButton>
     </div>
-  </form>
+    </form>
+  </div>
 </template>
