@@ -182,6 +182,8 @@
     "fromEmail": "From email",
     "fromName": "From name",
     "imap": "IMAP for replies (optional)",
+    "test": "Test connection",
+    "tested": "Connection succeeded",
     "save": "Save connection",
     "recipients": "Recipients",
     "csv": "Email, name per line",

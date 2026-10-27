@@ -182,6 +182,8 @@
     "fromEmail": "Afzender e-mail",
     "fromName": "Afzendernaam",
     "imap": "IMAP voor antwoorden (optioneel)",
+    "test": "Verbinding testen",
+    "tested": "Verbinding gelukt",
     "save": "Koppeling opslaan",
     "recipients": "Ontvangers",
     "csv": "E-mail, naam per regel",
