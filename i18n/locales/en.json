@@ -233,6 +233,7 @@
     "send": "Send",
     "you": "You",
     "assistant": "Assistant",
+    "thinking": "Assistant is thinking…",
     "list": "Chats",
     "empty": "No chats yet.",
     "delete": "Delete",

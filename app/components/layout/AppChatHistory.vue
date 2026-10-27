@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vMotion } from 'motion-v'
 import type { ChatModule } from '~~/shared/platforms'
 
 type ChatSummary = {
@@ -13,14 +14,27 @@ const localePath = useLocalePath()
 const route = useRoute()
 const api = useRequestFetch()
 const open = useState('nav-open', () => false)
-const version = useState('chat-history-version', () => 0)
+const { version, promoted, touch, clearPromotion } = useChatHistory()
 const { confirmDelete, deleteChat } = useDeleteChat()
+const reduceMotion = ref(false)
 
 const { data, refresh } = await useAsyncData('chat-history', () => api<ChatSummary[]>('/api/conversations'))
 
+function rank(chat: ChatSummary) {
+  const remote = Date.parse(chat.updatedAt) || 0
+  if (promoted.value?.id !== chat.id) return remote
+  return Math.max(remote, Date.parse(promoted.value.at) || 0)
+}
+
 const chats = computed(() => [...(data.value || [])]
-  .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+  .sort((a, b) => rank(b) - rank(a))
   .slice(0, 20))
+
+const orderKey = computed(() => chats.value.map(chat => chat.id).join('|'))
+const rowLayout = computed(() => reduceMotion.value ? false : 'position')
+const rowTransition = computed(() => reduceMotion.value
+  ? { duration: 0 }
+  : { type: 'spring' as const, bounce: 0.18, duration: 0.45 })
 
 const menuId = ref('')
 const menuStyle = ref({ top: '0px', left: '0px' })
@@ -83,6 +97,7 @@ function onKey(event: KeyboardEvent) {
 }
 
 onMounted(() => {
+  reduceMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   document.addEventListener('click', onDocumentClick)
   window.addEventListener('keydown', onKey)
 })
@@ -91,9 +106,14 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
 })
 
-watch([() => route.path, version], () => {
+watch([() => route.path, version], async () => {
   closeMenu()
-  refresh()
+  await refresh()
+  const bump = promoted.value
+  if (!bump) return
+  const top = [...(data.value || [])]
+    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0]
+  if (top?.id === bump.id) clearPromotion(bump.id)
 })
 
 function view(chat: ChatSummary) {
@@ -127,7 +147,7 @@ async function saveRename(chat: ChatSummary) {
   saving.value = true
   try {
     await api(`/api/conversations/${chat.id}`, { method: 'PATCH', body: { title } })
-    version.value += 1
+    touch()
   }
   finally {
     saving.value = false
@@ -153,11 +173,24 @@ const openChat = computed(() => chats.value.find(chat => chat.id === menuId.valu
       <Icon name="solar:history-bold-duotone" class="size-5 shrink-0" />
       {{ t('nav.history') }}
     </p>
-    <div class="history-scroll mt-1.5 min-h-0 flex-1 overflow-y-auto pr-1">
+    <div
+      v-motion
+      class="history-scroll mt-1.5 min-h-0 flex-1 overflow-y-auto pr-1"
+      layout-scroll
+    >
       <p v-if="!chats.length" class="px-3 py-2 text-xs text-sidebar-muted">
         {{ t('chat.empty') }}
       </p>
-      <div v-for="chat in chats" :key="chat.id" class="flex items-center gap-1 rounded-xl px-1" :class="current(chat.id) ? 'bg-sidebar-active' : 'hover:bg-white/10'">
+      <div
+        v-for="(chat, index) in chats"
+        :key="chat.id"
+        v-motion
+        class="flex items-center gap-1 rounded-xl px-1"
+        :class="current(chat.id) ? 'bg-sidebar-active' : 'hover:bg-white/10'"
+        :layout="rowLayout"
+        :layout-dependency="`${orderKey}:${index}`"
+        :transition="rowTransition"
+      >
         <form v-if="renamingId === chat.id" class="min-w-0 flex-1" @submit.prevent="saveRename(chat)">
           <input
             v-model="draft"

@@ -1,5 +1,6 @@
 export function useDeleteChat() {
   const { t } = useI18n()
+  const { touch, clearPromotion } = useChatHistory()
 
   function confirmDelete() {
     return confirm(t('chat.confirmDelete'))
@@ -7,8 +8,8 @@ export function useDeleteChat() {
 
   async function deleteChat(id: string) {
     await $fetch(`/api/conversations/${id}`, { method: 'DELETE' })
-    const version = useState('chat-history-version', () => 0)
-    version.value += 1
+    clearPromotion(id)
+    touch()
   }
 
   return { confirmDelete, deleteChat }

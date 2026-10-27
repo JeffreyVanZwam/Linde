@@ -25,6 +25,7 @@ const basePath = computed(() => {
 })
 
 const api = useRequestFetch()
+const { promote, clearPromotion, touch } = useChatHistory()
 const { confirmDelete, deleteChat } = useDeleteChat()
 const removing = ref(false)
 const canDelete = computed(() => Boolean(props.conversationId && props.conversationId !== 'new'))
@@ -71,7 +72,10 @@ async function send() {
   pending.value = ''
   history.value.push({ id: `local-${Date.now()}`, role: 'user', content })
   draft.value = ''
+  const activeId = props.conversationId && props.conversationId !== 'new' ? props.conversationId : ''
+  if (activeId) promote(activeId)
   let createdId = ''
+  let accepted = false
   try {
     const response = await fetch('/api/chat', {
       method: 'POST',
@@ -88,6 +92,8 @@ async function send() {
       const data = await response.json().catch(() => ({}))
       throw new Error(data.statusMessage || t('common.error'))
     }
+    accepted = true
+    if (activeId) touch()
     const reader = response.body?.getReader()
     const decoder = new TextDecoder()
     while (reader) {
@@ -97,12 +103,15 @@ async function send() {
     }
   }
   catch (cause) {
+    if (activeId && !accepted) clearPromotion(activeId)
     error.value = cause instanceof Error ? cause.message : t('common.error')
   }
   finally {
     busy.value = false
   }
   if (createdId && props.conversationId === 'new') {
+    promote(createdId)
+    touch()
     await navigateTo(localePath(`${basePath.value}/${createdId}`))
     return
   }
@@ -138,24 +147,37 @@ const suggestions = computed(() => {
       </UiButton>
     </div>
     <div class="flex-1 space-y-4">
-      <p v-if="!history.length && !pending" class="text-sm text-muted">
+      <p v-if="!history.length && !pending && !busy" class="text-sm text-muted">
         {{ t('strategy.empty') }}
       </p>
       <article v-for="message in history" :key="message.id" class="msg-in max-w-3xl">
         <p class="text-xs uppercase tracking-wide text-muted">
           {{ message.role === 'user' ? t('chat.you') : t('chat.assistant') }}
         </p>
-        <p class="mt-1 whitespace-pre-wrap text-sm leading-6">
+        <UiMarkdown
+          v-if="message.role !== 'user'"
+          class="mt-1"
+          :source="message.content"
+        />
+        <p v-else class="mt-1 whitespace-pre-wrap text-sm leading-6">
           {{ message.content }}
         </p>
+      </article>
+      <article v-if="busy && !pending" class="msg-in max-w-3xl" :aria-label="t('chat.thinking')">
+        <p class="text-xs uppercase tracking-wide text-muted">
+          {{ t('chat.assistant') }}
+        </p>
+        <div class="mt-2 flex items-center gap-1.5" aria-hidden="true">
+          <span class="chat-think-dot size-1.5 rounded-full bg-muted" />
+          <span class="chat-think-dot size-1.5 rounded-full bg-muted" />
+          <span class="chat-think-dot size-1.5 rounded-full bg-muted" />
+        </div>
       </article>
       <article v-if="pending" class="max-w-3xl">
         <p class="text-xs uppercase tracking-wide text-muted">
           {{ t('chat.assistant') }}
         </p>
-        <p class="mt-1 whitespace-pre-wrap text-sm leading-6">
-          {{ pending }}
-        </p>
+        <UiMarkdown class="mt-1" :source="pending" />
       </article>
     </div>
     <UiAlert class="mt-4" :message="error" />
