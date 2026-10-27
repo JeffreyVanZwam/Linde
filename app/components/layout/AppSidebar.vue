@@ -77,7 +77,7 @@ async function logout() {
       ? 'fixed inset-y-0 left-0 shadow-2xl lg:static lg:shadow-none'
       : 'max-lg:hidden'"
   >
-    <NuxtLink :to="localePath('/')" class="flex items-center gap-3 px-1" @click="open = false">
+    <NuxtLink :to="localePath('/')" class="flex shrink-0 items-center gap-3 px-1" @click="open = false">
       <span class="flex size-11 items-center justify-center rounded-full ring-1 ring-white/30">
         <AppMark class="size-8 text-sidebar-ink" />
       </span>
@@ -86,28 +86,30 @@ async function logout() {
         <span class="block text-xs text-sidebar-muted">{{ t('nav.dashboard') }}</span>
       </span>
     </NuxtLink>
-    <nav class="mt-8 flex shrink-0 flex-col gap-6">
-      <div v-for="group in groups" :key="group.label">
-        <p class="px-3 text-xs font-medium text-sidebar-muted">
-          {{ group.label }}
-        </p>
-        <div class="mt-1.5 flex flex-col gap-0.5">
-          <NuxtLink
-            v-for="item in group.items"
-            :key="item.to"
-            :to="localePath(item.to)"
-            class="nav-link flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm transition duration-200"
-            :class="active(item.to) ? 'bg-sidebar-active text-sidebar-ink' : 'text-sidebar-muted hover:translate-x-0.5 hover:bg-white/10 hover:text-sidebar-ink'"
-            :style="{ '--d': `${item.delay}ms` }"
-            @click="open = false"
-          >
-            <Icon :name="item.icon" class="size-5 shrink-0" />
-            {{ item.label }}
-          </NuxtLink>
+    <div class="mt-8 flex min-h-0 flex-1 flex-col overflow-hidden">
+      <nav class="theme-scroll flex min-h-0 shrink flex-col gap-6 overflow-y-auto">
+        <div v-for="group in groups" :key="group.label">
+          <p class="px-3 text-xs font-medium text-sidebar-muted">
+            {{ group.label }}
+          </p>
+          <div class="mt-1.5 flex flex-col gap-0.5">
+            <NuxtLink
+              v-for="item in group.items"
+              :key="item.to"
+              :to="localePath(item.to)"
+              class="nav-link flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm transition duration-200"
+              :class="active(item.to) ? 'bg-sidebar-active text-sidebar-ink' : 'text-sidebar-muted hover:translate-x-0.5 hover:bg-white/10 hover:text-sidebar-ink'"
+              :style="{ '--d': `${item.delay}ms` }"
+              @click="open = false"
+            >
+              <Icon :name="item.icon" class="size-5 shrink-0" />
+              {{ item.label }}
+            </NuxtLink>
+          </div>
         </div>
-      </div>
-    </nav>
-    <AppChatHistory />
+      </nav>
+      <AppChatHistory />
+    </div>
     <div class="mt-4 shrink-0 space-y-1 border-t border-white/10 pt-3">
       <NuxtLink
         :to="localePath('/settings')"

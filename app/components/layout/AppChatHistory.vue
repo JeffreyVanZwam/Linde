@@ -148,7 +148,7 @@ const openChat = computed(() => chats.value.find(chat => chat.id === menuId.valu
 </script>
 
 <template>
-  <section class="mt-6 flex min-h-0 flex-1 flex-col">
+  <section class="mt-6 flex min-h-24 flex-1 flex-col overflow-hidden">
     <p class="flex shrink-0 items-center gap-3 px-3 text-sm font-medium text-sidebar-muted">
       <Icon name="solar:history-bold-duotone" class="size-5 shrink-0" />
       {{ t('nav.history') }}

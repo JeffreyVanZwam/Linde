@@ -173,23 +173,27 @@ body {
 }
 
 main,
-.history-scroll {
+.history-scroll,
+.theme-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--contrast) transparent;
 }
 
 main::-webkit-scrollbar,
-.history-scroll::-webkit-scrollbar {
+.history-scroll::-webkit-scrollbar,
+.theme-scroll::-webkit-scrollbar {
   width: 8px;
 }
 
 main::-webkit-scrollbar-track,
-.history-scroll::-webkit-scrollbar-track {
+.history-scroll::-webkit-scrollbar-track,
+.theme-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 
 main::-webkit-scrollbar-thumb,
-.history-scroll::-webkit-scrollbar-thumb {
+.history-scroll::-webkit-scrollbar-thumb,
+.theme-scroll::-webkit-scrollbar-thumb {
   background: var(--contrast);
   border-radius: 999px;
 }
