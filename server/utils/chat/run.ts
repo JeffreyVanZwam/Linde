@@ -3,8 +3,9 @@ import { z } from 'zod'
 import { chatModules, platformLimits, socialPlatforms, type ChatModule } from '~~/shared/platforms'
 import { aiConfig, getLanguageModel } from '../ai'
 import { brandInstructions, getBrand } from '../brand'
-import { duplicateWarning } from '../similarity'
-import { createCampaign, createConversation, createDraft, createMessage, createPost, createStep, createTarget, findConversation, listMessages, listPosts, listSiteArticles, listSocialAccounts, touchConversation } from '../store'
+import { recentPerformance, socialBrief } from '../social/history'
+import { accountDuplicate, comparableTargets } from '../social/posts'
+import { createCampaign, createConversation, createDraft, createMessage, createPost, createStep, createTarget, findConversation, listMessages, listSiteArticles, listSocialAccounts, touchConversation } from '../store'
 
 const chatSchema = z.object({
   module: z.enum(chatModules),
@@ -37,6 +38,7 @@ export async function streamChat(userId: string, input: z.infer<typeof chatSchem
   const history = await listMessages(conversationId)
   const brand = await getBrand(userId)
   const language = input.locale === 'en' ? 'Answer in English.' : 'Antwoord in het Nederlands.'
+  const brief = input.module === 'social' ? await socialBrief(userId, input.locale) : ''
   const ai = aiConfig()
   const fallback = input.locale === 'en'
     ? 'Done. The result is saved in this module.'
@@ -50,7 +52,7 @@ export async function streamChat(userId: string, input: z.infer<typeof chatSchem
   const result = streamText({
     model: getLanguageModel(),
     maxRetries: ai.tier === 'free' ? 0 : 2,
-    instructions: `${language}\n\n${instructions(input.module)}\n\nMerkprofiel:\n${brandInstructions(brand)}`,
+    instructions: `${language}\n\n${instructions(input.module)}${brief ? `\n\n${brief}` : ''}\n\nMerkprofiel:\n${brandInstructions(brand)}`,
     messages: history
       .filter(message => message.role === 'user' || message.role === 'assistant')
       .map(message => ({ role: message.role as 'user' | 'assistant', content: message.content })),
@@ -95,7 +97,7 @@ function instructions(module: ChatModule) {
     return 'Je bent een business-strateeg. Help met positionering, aanbod, kanalen en prioriteiten. Gebruik alleen het merkprofiel. Verzin geen cijfers.'
   }
   if (module === 'social') {
-    return 'Je stelt social posts voor. Roep proposePost aan zodra de gebruiker een post wil. Pas de tekst per platform aan en vermijd herhaling van eerdere posts uit getRecentPosts. Vraag om een video als het platform YouTube of TikTok is.'
+    return 'Je stelt social posts voor. Roep proposePost aan zodra de gebruiker een post wil. Pas de tekst per platform aan. Vraag om een video als het platform YouTube of TikTok is. Gebruik het prestatieoverzicht en getRecentPosts per account. Een target dat te veel lijkt op een bestaande post van dat account wordt overgeslagen; herschrijf dan alleen dat platform.'
   }
   if (module === 'seo') {
     return 'Je schrijft SEO- en GEO-artikelen. GEO betekent dat het stuk citeerbaar is voor antwoordmachines: heldere entiteiten, definities, FAQ en merkconsistente feiten. Roep saveArticleDraft aan met het volledige artikel. Sluit aan op bestaande artikelen tenzij de gebruiker een nieuw thema vraagt. Publiceer niets zelf naar de website.'
@@ -113,15 +115,12 @@ function toolsFor(userId: string, module: ChatModule, conversationId: string) {
 function socialTools(userId: string, conversationId: string) {
   return {
     getRecentPosts: tool({
-      description: 'Lees recente posts van gekoppelde accounts om duplicaten te vermijden.',
+      description: 'Lees recente geplaatste posts per account, met een prestatielabel dat alleen binnen dat account geldt.',
       inputSchema: z.object({}),
-      execute: async () => {
-        const posts = await listPosts(userId, 20)
-        return posts.map(post => ({ body: post.body.slice(0, 400), status: post.status, source: post.source }))
-      },
+      execute: async () => recentPerformance(userId),
     }),
     proposePost: tool({
-      description: 'Sla een conceptpost op met platformspecifieke tekst.',
+      description: 'Sla een conceptpost op met platformspecifieke tekst. Een bijna-duplicaat op één account wordt overgeslagen; de andere platforms worden wel opgeslagen.',
       inputSchema: z.object({
         body: z.string(),
         imagePrompt: z.string().optional(),
@@ -133,8 +132,34 @@ function socialTools(userId: string, conversationId: string) {
       }),
       execute: async (input) => {
         const accounts = await listSocialAccounts(userId)
-        const recent = await listPosts(userId, 30)
-        const warning = duplicateWarning(input.body, recent.map(post => post.body))
+        const corpus = await comparableTargets(userId)
+        const missing: string[] = []
+        const skipped: Array<{ platform: string, reason: string }> = []
+        const accepted: Array<{ accountId: string, platform: typeof input.targets[number]['platform'], body: string, title: string | null }> = []
+        for (const target of input.targets) {
+          const account = accounts.find(item => item.platform === target.platform)
+          if (!account) {
+            missing.push(target.platform)
+            continue
+          }
+          const limit = platformLimits[target.platform]
+          const body = target.body.slice(0, limit.body)
+          const reason = accountDuplicate(body, account.id, corpus)
+          if (reason) {
+            skipped.push({ platform: target.platform, reason })
+            continue
+          }
+          accepted.push({
+            accountId: account.id,
+            platform: target.platform,
+            body,
+            title: target.title?.slice(0, limit.title || 150) || null,
+          })
+        }
+        const warning = skipped.map(item => `${item.platform}: ${item.reason}`).join('\n') || null
+        if (!accepted.length) {
+          return { postId: null, duplicateWarning: warning, skippedPlatforms: skipped, missingPlatforms: missing, imagePrompt: input.imagePrompt || null }
+        }
         const postId = await createPost({
           userId,
           conversationId,
@@ -143,24 +168,17 @@ function socialTools(userId: string, conversationId: string) {
           source: 'local',
           duplicateWarning: warning,
         })
-        const missing: string[] = []
-        for (const target of input.targets) {
-          const account = accounts.find(item => item.platform === target.platform)
-          if (!account) {
-            missing.push(target.platform)
-            continue
-          }
-          const limit = platformLimits[target.platform]
+        for (const target of accepted) {
           await createTarget({
             postId,
-            accountId: account.id,
+            accountId: target.accountId,
             platform: target.platform,
-            body: target.body.slice(0, limit.body),
-            title: target.title?.slice(0, limit.title || 150) || null,
+            body: target.body,
+            title: target.title,
             status: 'draft',
           })
         }
-        return { postId, duplicateWarning: warning, missingPlatforms: missing, imagePrompt: input.imagePrompt || null }
+        return { postId, duplicateWarning: warning, skippedPlatforms: skipped, missingPlatforms: missing, imagePrompt: input.imagePrompt || null }
       },
     }),
   }

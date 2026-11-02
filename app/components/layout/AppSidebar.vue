@@ -16,6 +16,8 @@ const groups = computed(() => {
       label: t('nav.groupBrand'),
       items: [
         { to: '/brain', label: t('nav.brain'), icon: 'solar:brain-bold-duotone' },
+        { to: '/audit', label: t('nav.audit'), icon: 'solar:clipboard-check-bold-duotone' },
+        { to: '/foundation', label: t('nav.foundation'), icon: 'solar:buildings-3-bold-duotone' },
         { to: '/files', label: t('nav.files'), icon: 'solar:folder-bold-duotone' },
       ],
     },

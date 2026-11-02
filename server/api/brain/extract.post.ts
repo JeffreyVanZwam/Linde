@@ -13,5 +13,5 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const input = parseInput(schema, await readBody(event))
   const extracted = await extractBrand(user.id, input.url, input.locale)
-  return saveBrand(user.id, { ...extracted, onboardingCompleted: false })
+  return saveBrand(user.id, extracted)
 })

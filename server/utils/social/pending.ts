@@ -30,7 +30,7 @@ function asDate(value: unknown) {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-export async function saveConnectPending(userId: string, provider: 'linkedin' | 'meta', payload: LinkedInPending) {
+export async function saveConnectPending(userId: string, provider: 'linkedin' | 'facebook', payload: LinkedInPending) {
   const row = await createRecord('social_connect_pending', {
     user: userId,
     provider,
@@ -49,7 +49,7 @@ export async function readLinkedInPending(userId: string, pendingId: string) {
     'id = {:id} && user = {:user}',
     { id: pendingId, user: userId },
   ))
-  if (!row || (row.provider !== 'linkedin' && row.provider !== 'meta')) apiError(404, 'De accountkeuze is niet gevonden')
+  if (!row || (row.provider !== 'linkedin' && row.provider !== 'facebook' && row.provider !== 'meta')) apiError(404, 'De accountkeuze is niet gevonden')
   const expiresAt = asDate(row.expiresAt)
   if (!expiresAt || expiresAt.getTime() < Date.now()) {
     await removeRecord('social_connect_pending', row.id)

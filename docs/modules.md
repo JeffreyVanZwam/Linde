@@ -14,9 +14,11 @@
 
 ## Social
 
-On Accounts the user saves a developer app, then `/api/social/connect/:provider` sends them to the platform login. The callback is `/api/social/callback/:provider`. Providers: `linkedin`, `meta`, `youtube`, `tiktok`. Meta creates a Facebook account per page and, when present, an Instagram account.
+On Accounts the user saves a developer app, then `/api/social/connect/:provider` sends them to the platform login. The callback is `/api/social/callback/:provider`. Providers: `linkedin`, `facebook`, `instagram`, `youtube`, `tiktok`. Facebook uses the Meta app ID. Instagram login uses the separate Instagram App ID and secret from that same Meta app, under Business login settings. Facebook login returns business Pages. Instagram login uses the Instagram professional account.
 
-`POST /api/social/sync` reads recent posts. They land in the same post tables with `source: synced`. The composer and the social chat create local drafts. A Jaccard check warns when the text closely matches an earlier post.
+`POST /api/social/sync` reads recent posts and the metrics the platform returns. A daily task refreshes metrics for posts from the last 30 days. A failed metrics call is a warning and does not disconnect the account. Posts land in the same tables with `source: synced`. The composer and the social chat create local drafts.
+
+A Jaccard check compares each target with earlier published or scheduled posts of that same account. Scheduling skips only that target; the other platforms of the post can still be scheduled. The social chat gets a per-account summary and skips a near-duplicate target instead of dropping the whole draft. `/social/published` lists published targets with the numbers that exist and a label: strong, average, weak or unknown. Labels are tertiles inside one account. LinkedIn personal profiles do not return impressions. Instagram reach needs the Instagram login with `instagram_business_manage_insights`.
 
 Scheduling sets `status` to `scheduled`. The task publishes afterwards. Instagram needs a public image URL. YouTube and TikTok need a video.
 

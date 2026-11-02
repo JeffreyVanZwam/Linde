@@ -29,3 +29,9 @@ export function parseJson<T>(value: string | null | undefined, fallback: T): T {
 export function appBaseUrl() {
   return (process.env.APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000').replace(/\/$/, '')
 }
+
+export function httpsBaseUrl() {
+  const url = new URL(appBaseUrl())
+  url.protocol = 'https:'
+  return url.origin
+}

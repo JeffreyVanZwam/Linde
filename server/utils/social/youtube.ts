@@ -1,7 +1,7 @@
 import { fileBlob } from '../bytes'
 import { appBaseUrl } from '../http'
-import { formPost, jsonRequest, readString } from './http'
-import type { OAuthApp, PublishInput, PublishResult, RemotePost, TokenSet } from './types'
+import { chunks, formPost, jsonRequest, readCount, readString } from './http'
+import type { OAuthApp, PostMetrics, PublishInput, PublishResult, RemotePost, TokenSet } from './types'
 
 export function youtubeAuthUrl(state: string, app: OAuthApp) {
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')
@@ -58,14 +58,45 @@ export async function youtubeRecent(token: string, playlistId: string): Promise<
   return items.map((item) => {
     const snippet = (item.snippet || {}) as Record<string, unknown>
     const resource = (snippet.resourceId || {}) as Record<string, unknown>
+    const thumbs = (snippet.thumbnails || {}) as Record<string, { url?: string }>
     return {
       externalId: readString(resource, 'videoId') || readString(item, 'id'),
       title: readString(snippet, 'title'),
       body: readString(snippet, 'description'),
       url: readString(resource, 'videoId') ? `https://www.youtube.com/watch?v=${readString(resource, 'videoId')}` : null,
+      imageUrl: thumbs.high?.url || thumbs.medium?.url || thumbs.default?.url || null,
       publishedAt: readString(snippet, 'publishedAt') ? new Date(readString(snippet, 'publishedAt')) : null,
     }
   })
+}
+
+export async function youtubeMetrics(token: string, externalIds: string[]) {
+  const metrics = new Map<string, PostMetrics>()
+  const warnings: string[] = []
+  for (const group of chunks(externalIds, 40)) {
+    try {
+      const data = await jsonRequest(`https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${group.map(encodeURIComponent).join(',')}`, { token })
+      const items = Array.isArray(data.items) ? data.items as Record<string, unknown>[] : []
+      for (const item of items) {
+        const statistics = (item.statistics || {}) as Record<string, unknown>
+        const id = readString(item, 'id')
+        if (!id) continue
+        metrics.set(id, {
+          impressions: readCount(statistics.viewCount),
+          reach: null,
+          likes: readCount(statistics.likeCount),
+          comments: readCount(statistics.commentCount),
+          shares: null,
+          saves: null,
+          clicks: null,
+        })
+      }
+    }
+    catch (error) {
+      warnings.push(error instanceof Error ? error.message : 'YouTube-cijfers mislukt')
+    }
+  }
+  return { metrics, warning: warnings[0]?.slice(0, 240) || null }
 }
 
 export async function youtubePublish(token: string, input: PublishInput): Promise<PublishResult> {

@@ -1,7 +1,7 @@
 import { fileBlob } from '../bytes'
 import { appBaseUrl } from '../http'
-import { formPost, jsonRequest, readString } from './http'
-import type { OAuthApp, PublishInput, PublishResult, RemotePost, TokenSet } from './types'
+import { chunks, formPost, jsonRequest, readCount, readString } from './http'
+import type { OAuthApp, PostMetrics, PublishInput, PublishResult, RemotePost, TokenSet } from './types'
 
 export function tiktokAuthUrl(state: string, app: OAuthApp) {
   const url = new URL('https://www.tiktok.com/v2/auth/authorize/')
@@ -47,7 +47,7 @@ export async function tiktokProfile(token: string) {
 }
 
 export async function tiktokRecent(token: string): Promise<RemotePost[]> {
-  const data = await jsonRequest('https://open.tiktokapis.com/v2/video/list/?fields=id,title,video_description,share_url,create_time', {
+  const data = await jsonRequest('https://open.tiktokapis.com/v2/video/list/?fields=id,title,video_description,share_url,cover_image_url,create_time,view_count,like_count,comment_count,share_count', {
     method: 'POST',
     token,
     body: { max_count: 20 },
@@ -58,8 +58,45 @@ export async function tiktokRecent(token: string): Promise<RemotePost[]> {
     title: readString(video, 'title'),
     body: readString(video, 'video_description'),
     url: readString(video, 'share_url'),
+    imageUrl: readString(video, 'cover_image_url') || null,
     publishedAt: video.create_time ? new Date(Number(video.create_time) * 1000) : null,
+    metrics: videoMetrics(video),
   })).filter(video => video.externalId)
+}
+
+export async function tiktokMetrics(token: string, externalIds: string[]) {
+  const metrics = new Map<string, PostMetrics>()
+  const warnings: string[] = []
+  for (const group of chunks(externalIds, 20)) {
+    try {
+      const data = await jsonRequest('https://open.tiktokapis.com/v2/video/query/?fields=id,view_count,like_count,comment_count,share_count', {
+        method: 'POST',
+        token,
+        body: { filters: { video_ids: group } },
+      })
+      const videos = ((data.data as Record<string, unknown> | undefined)?.videos || []) as Record<string, unknown>[]
+      for (const video of videos) {
+        const id = readString(video, 'id')
+        if (id) metrics.set(id, videoMetrics(video))
+      }
+    }
+    catch (error) {
+      warnings.push(error instanceof Error ? error.message : 'TikTok-cijfers mislukt')
+    }
+  }
+  return { metrics, warning: warnings[0]?.slice(0, 240) || null }
+}
+
+function videoMetrics(video: Record<string, unknown>): PostMetrics {
+  return {
+    impressions: readCount(video.view_count),
+    reach: null,
+    likes: readCount(video.like_count),
+    comments: readCount(video.comment_count),
+    shares: readCount(video.share_count),
+    saves: null,
+    clicks: null,
+  }
 }
 
 export async function tiktokPublish(token: string, input: PublishInput, privacy = 'SELF_ONLY'): Promise<PublishResult> {

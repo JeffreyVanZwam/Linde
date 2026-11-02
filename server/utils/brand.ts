@@ -1,3 +1,4 @@
+import { coerceDossier, legacyFromDossier, type BrandDossier } from '~~/shared/dossier'
 import { parseJson } from './http'
 import type { BrandRow } from './rows'
 import { findBrand, saveBrandRecord } from './store'
@@ -16,6 +17,7 @@ export type BrandView = {
   toneOfVoice: string | null
   articlesUrl: string | null
   onboardingCompleted: boolean
+  dossier: BrandDossier | null
 }
 
 export function toBrandView(row: BrandRow): BrandView {
@@ -33,7 +35,14 @@ export function toBrandView(row: BrandRow): BrandView {
     toneOfVoice: row.toneOfVoice,
     articlesUrl: row.articlesUrl,
     onboardingCompleted: row.onboardingCompleted,
+    dossier: readDossier(row.dossierJson),
   }
+}
+
+function readDossier(raw: string) {
+  const parsed = parseJson<unknown>(raw, null)
+  if (!parsed || typeof parsed !== 'object') return null
+  return coerceDossier(parsed)
 }
 
 export async function getBrand(userId: string) {
@@ -41,22 +50,30 @@ export async function getBrand(userId: string) {
   return row ? toBrandView(row) : null
 }
 
-export async function saveBrand(userId: string, input: Partial<BrandView> & { onboardingCompleted?: boolean }) {
+export async function saveBrand(userId: string, input: Partial<Omit<BrandView, 'dossier'>> & { dossier?: unknown, onboardingCompleted?: boolean }) {
   const existing = await findBrand(userId)
   const current = existing ? toBrandView(existing) : null
+  const dossier = input.dossier !== undefined
+    ? coerceDossier(input.dossier, current?.dossier ?? undefined)
+    : current?.dossier ?? null
+  const dossierUrl = input.dossier !== undefined ? dossier?.foundation.brief.geo.url.trim() : ''
+  const websiteUrl = dossierUrl || input.websiteUrl || current?.websiteUrl || null
+  if (dossier && websiteUrl && !dossier.foundation.brief.geo.url) dossier.foundation.brief.geo.url = websiteUrl
+  const derived = input.dossier !== undefined && dossier ? legacyFromDossier(dossier) : null
   await saveBrandRecord(userId, existing, {
-    websiteUrl: input.websiteUrl ?? current?.websiteUrl ?? null,
-    companyName: input.companyName ?? current?.companyName ?? null,
+    websiteUrl,
+    companyName: derived ? (derived.companyName || input.companyName || current?.companyName || null) : (input.companyName ?? current?.companyName ?? null),
     logoMediaId: input.logoMediaId ?? current?.logoMediaId ?? null,
     imageIds: input.imageIds ?? current?.imageIds ?? [],
     colors: input.colors ?? current?.colors ?? [],
     fonts: input.fonts ?? current?.fonts ?? [],
-    whoTheyAre: input.whoTheyAre ?? current?.whoTheyAre ?? null,
-    whatTheyDo: input.whatTheyDo ?? current?.whatTheyDo ?? null,
-    audience: input.audience ?? current?.audience ?? null,
-    toneOfVoice: input.toneOfVoice ?? current?.toneOfVoice ?? null,
+    whoTheyAre: derived ? derived.whoTheyAre : (input.whoTheyAre ?? current?.whoTheyAre ?? null),
+    whatTheyDo: derived ? derived.whatTheyDo : (input.whatTheyDo ?? current?.whatTheyDo ?? null),
+    audience: derived ? derived.audience : (input.audience ?? current?.audience ?? null),
+    toneOfVoice: derived ? derived.toneOfVoice : (input.toneOfVoice ?? current?.toneOfVoice ?? null),
     articlesUrl: input.articlesUrl ?? current?.articlesUrl ?? null,
     onboardingCompleted: input.onboardingCompleted ?? current?.onboardingCompleted ?? false,
+    dossier,
   })
   return getBrand(userId)
 }
@@ -73,5 +90,76 @@ export function brandInstructions(brand: BrandView | null) {
     `Kleuren: ${brand.colors.join(', ') || 'onbekend'}`,
     `Fonts: ${brand.fonts.join(', ') || 'onbekend'}`,
     `Artikelen-URL: ${brand.articlesUrl || 'niet ingesteld'}`,
-  ].join('\n')
+    brand.dossier ? dossierBrief(brand.dossier) : '',
+  ].filter(Boolean).join('\n').slice(0, 12_000)
+}
+
+function clip(value: string, max = 400) {
+  const text = value.replace(/\s+/g, ' ').trim()
+  if (text.length <= max) return text
+  return `${text.slice(0, max)}…`
+}
+
+function scoreLine(label: string, item: { score: number, note: string }) {
+  return item.note.trim() ? `${label} (${item.score}/10): ${clip(item.note, 240)}` : ''
+}
+
+function dossierBrief(dossier: BrandDossier) {
+  const website = dossier.growthAudit.website
+  const seo = dossier.growthAudit.seo
+  const listing = dossier.growthAudit.listing
+  const brief = dossier.foundation.brief
+  const audience = dossier.foundation.audience
+  const competitors = dossier.foundation.competitors
+  return [
+    `Operator: ${brief.geo.operator}`,
+    `URL: ${brief.geo.url}`,
+    `Geo: ${brief.geo.scope}`,
+    `Oneliner: ${brief.oneLiner}`,
+    `Categorie: ${brief.category}`,
+    `Hero: ${clip(brief.hero)}`,
+    `Prijzen: ${clip(brief.pricing)}`,
+    `Functies: ${brief.features.filter(Boolean).join('; ')}`,
+    `ICP-signalen: ${clip(brief.icpSignals)}`,
+    `Vertrouwensbasis: ${clip(brief.trustSpine, 300)}`,
+    `Toon: ${clip(brief.tone, 300)}`,
+    `Wie het probleem heeft: ${audience.summary.whoHasProblem}`,
+    `Wie betaalt: ${audience.summary.whoPays}`,
+    `Pijn: ${audience.summary.dominantPain}`,
+    `Bezwaar: ${audience.summary.objection}`,
+    `Aanleiding: ${audience.summary.dominantTrigger}`,
+    `Voorbehoud: ${audience.summary.evidenceCaveat}`,
+    `Segmentatie: ${clip(audience.segmentation)}`,
+    ...audience.topIcps.filter(icp => icp.name.trim() || icp.dive.trim()).map(icp => `ICP ${icp.name}: ${clip(icp.dive, 300)}`),
+    `Stem van de klant: ${audience.voice.filter(Boolean).join(' | ')}`,
+    `Thema's: ${audience.themes.filter(Boolean).join('; ')}`,
+    `Antipatronen: ${audience.antiPatterns.filter(Boolean).join('; ')}`,
+    `Categoriestelling: ${competitors.summary.categoryStatement}`,
+    `Landschap: ${clip(competitors.summary.marketLandscape)}`,
+    `Waardepropositie: ${competitors.summary.dominantValueProp}`,
+    `Prijsmodel: ${competitors.summary.dominantPricingModel}`,
+    `Posities: ${competitors.summary.positionsToOwn}`,
+    `Winnen: ${clip(competitors.whereWeWin)}`,
+    `Site-audit: ${clip([website.siteAudit.audienceScope, website.siteAudit.gutReaction, website.siteAudit.spotlightCompetitors].filter(Boolean).join(' '), 500)}`,
+    scoreLine('Positionering', website.scores.positioning),
+    scoreLine('Conversie', website.scores.conversionClarity),
+    scoreLine('Vertrouwen', website.scores.trustSignals),
+    scoreLine('Prijzen op de site', website.scores.paywallAndPricing),
+    scoreLine('SEO-basis', website.scores.seoBasics),
+    scoreLine('Brief', website.scores.briefFit),
+    `Snelle winsten: ${website.quickWins.filter(Boolean).join('; ')}`,
+    `Dit kwartaal: ${website.thisQuarter.filter(Boolean).join('; ')}`,
+    scoreLine('Crawlbaarheid', seo.scores.crawlability),
+    scoreLine('Paginaduidelijkheid', seo.scores.pageClarity),
+    scoreLine('Citeerbaarheid', seo.scores.quotability),
+    scoreLine('Auteurschap', seo.scores.authorship),
+    ...seo.fixes.filter(fix => fix.theme.trim() || fix.recommendation.trim()).map(fix => `SEO ${fix.theme}: ${clip(fix.recommendation, 240)}`),
+    `Listing: ${clip(listing.summary)}`,
+    `Distributie: ${clip(listing.actionPlan.distributionPlays, 240)}`,
+    `Listing, snelle winsten: ${clip(listing.actionPlan.quickWins, 240)}`,
+    `Oprichter: ${clip(listing.actionPlan.founderTrustUpgrades, 240)}`,
+    `Grotere inzetten: ${clip(listing.actionPlan.biggerBets, 240)}`,
+    `Na installatie: ${clip(listing.actionPlan.postInstallSignals, 240)}`,
+    `Nog niet gepland: ${clip(listing.actionPlan.notYetPlanned, 240)}`,
+  ].filter(line => line.trim() && !/:\s*$/.test(line)).join('\n')
 }

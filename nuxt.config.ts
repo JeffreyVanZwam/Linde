@@ -31,6 +31,12 @@ export default defineNuxtConfig({
     optimizeDeps: {
       include: ['motion-v', 'cropperjs', 'pocketbase'],
     },
+    server: process.env.LINDE_PUBLIC_PORT
+      ? {
+          allowedHosts: true,
+          ws: { clientPort: Number(process.env.LINDE_PUBLIC_PORT) },
+        }
+      : undefined,
   },
   vue: {
     compilerOptions: {
@@ -39,7 +45,7 @@ export default defineNuxtConfig({
   },
   icon: {
     serverBundle: {
-      collections: ['solar', 'emojione-v1'],
+      collections: ['solar', 'emojione-v1', 'selfhst'],
     },
   },
   i18n: {
@@ -85,6 +91,7 @@ export default defineNuxtConfig({
     },
     scheduledTasks: {
       '* * * * *': ['social:publish', 'outreach:send'],
+      '15 6 * * *': ['social:metrics'],
     },
   },
 })

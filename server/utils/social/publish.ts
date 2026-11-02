@@ -24,9 +24,8 @@ export async function publishPost(postId: string) {
   const targets = await listTargetsForPost(post.id)
   const media = post.mediaAssetId ? await findMedia(post.mediaAssetId) : null
   const bytes = media ? await readMediaBytes(media.id) : null
-  let failed = false
   for (const target of targets) {
-    if (target.status === 'published') continue
+    if (target.status === 'published' || target.status === 'draft') continue
     if (!target.accountId) {
       failed = true
       await updateTarget(target.id, { status: 'failed', error: 'Geen gekoppeld account' })
@@ -52,14 +51,16 @@ export async function publishPost(postId: string) {
       })
     }
     catch (error) {
-      failed = true
       await updateTarget(target.id, {
         status: 'failed',
         error: error instanceof Error ? error.message : 'Publiceren mislukte',
       })
     }
   }
-  await updatePost(post.id, { status: failed ? 'failed' : 'published' })
+  const after = await listTargetsForPost(post.id)
+  const anyFailed = after.some(target => target.status === 'failed')
+  const anyPublished = after.some(target => target.status === 'published')
+  await updatePost(post.id, { status: anyFailed ? 'failed' : anyPublished ? 'published' : 'draft' })
 }
 
 function assertMedia(platform: SocialPlatform, input: PublishInput) {

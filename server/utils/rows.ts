@@ -14,6 +14,7 @@ export type BrandRow = {
   audience: string | null
   toneOfVoice: string | null
   articlesUrl: string | null
+  dossierJson: string
   onboardingCompleted: boolean
   createdAt: Date
   updatedAt: Date
@@ -70,6 +71,7 @@ export type SocialPostRow = {
   conversationId: string | null
   body: string
   mediaAssetId: string | null
+  imageUrl: string | null
   status: string
   source: string
   scheduledAt: Date | null
@@ -90,6 +92,14 @@ export type SocialTargetRow = {
   externalUrl: string | null
   error: string | null
   publishedAt: Date | null
+  impressions: number | null
+  reach: number | null
+  likes: number | null
+  comments: number | null
+  shares: number | null
+  saves: number | null
+  clicks: number | null
+  metricsAt: Date | null
 }
 
 export type SiteArticleRow = {
@@ -224,6 +234,15 @@ function numberOr(value: unknown, fallback: number) {
   return typeof value === 'number' ? value : fallback
 }
 
+function optionalNumber(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return null
+}
+
 export function mapBrand(record: PbRecord): BrandRow {
   return {
     id: record.id,
@@ -239,6 +258,7 @@ export function mapBrand(record: PbRecord): BrandRow {
     audience: text(record.audience),
     toneOfVoice: text(record.toneOfVoice),
     articlesUrl: text(record.articlesUrl),
+    dossierJson: jsonText(record.dossier, 'null'),
     onboardingCompleted: record.onboardingCompleted === true,
     createdAt: requiredDate(record.created),
     updatedAt: requiredDate(record.updated),
@@ -305,6 +325,7 @@ export function mapPost(record: PbRecord): SocialPostRow {
     conversationId: relation(record.conversation),
     body: String(record.body || ''),
     mediaAssetId: relation(record.media),
+    imageUrl: text(record.imageUrl),
     status: String(record.status || ''),
     source: String(record.source || ''),
     scheduledAt: date(record.scheduledAt),
@@ -327,6 +348,14 @@ export function mapTarget(record: PbRecord): SocialTargetRow {
     externalUrl: text(record.externalUrl),
     error: text(record.error),
     publishedAt: date(record.publishedAt),
+    impressions: optionalNumber(record.impressions),
+    reach: optionalNumber(record.reach),
+    likes: optionalNumber(record.likes),
+    comments: optionalNumber(record.comments),
+    shares: optionalNumber(record.shares),
+    saves: optionalNumber(record.saves),
+    clicks: optionalNumber(record.clicks),
+    metricsAt: date(record.metricsAt),
   }
 }
 

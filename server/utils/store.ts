@@ -1,3 +1,4 @@
+import type { BrandDossier } from '~~/shared/dossier'
 import { createRecord, filterOf, firstRecord, listRecords, oneRecord, removeFiltered, removeRecord, updateRecord } from './pb'
 import {
   iso,
@@ -55,6 +56,7 @@ export async function saveBrandRecord(userId: string, existing: BrandRow | null,
   toneOfVoice: string | null
   articlesUrl: string | null
   onboardingCompleted: boolean
+  dossier: BrandDossier | null
 }) {
   const data = {
     websiteUrl: values.websiteUrl || '',
@@ -69,6 +71,7 @@ export async function saveBrandRecord(userId: string, existing: BrandRow | null,
     toneOfVoice: values.toneOfVoice || '',
     articlesUrl: values.articlesUrl || '',
     onboardingCompleted: values.onboardingCompleted,
+    dossier: values.dossier,
   }
   if (existing) await updateRecord('brands', existing.id, data)
   else await createRecord('brands', { user: userId, ...data })
@@ -131,6 +134,10 @@ export async function createMessage(input: { conversationId: string, role: strin
 
 export async function listSocialAccounts(userId: string) {
   return (await byUser('social_accounts', userId)).map(mapAccount)
+}
+
+export async function listAllSocialAccounts() {
+  return (await listRecords('social_accounts')).map(mapAccount)
 }
 
 export async function findSocialAccount(id: string) {
@@ -196,6 +203,17 @@ export async function findMedia(id: string) {
   return row ? mapMedia(row) : null
 }
 
+export async function listMedia(ids: string[]) {
+  const unique = [...new Set(ids.filter(Boolean))]
+  const rows = []
+  for (let index = 0; index < unique.length; index += 40) {
+    const chunk = unique.slice(index, index + 40)
+    const filter = chunk.map(id => `id = "${id}"`).join(' || ')
+    rows.push(...await listRecords('library_files', { filter }))
+  }
+  return rows.map(mapMedia)
+}
+
 export async function listPosts(userId: string, limit = 500) {
   const rows = await listRecords('social_posts', {
     filter: await filterOf('user = {:user}', { user: userId }),
@@ -223,6 +241,7 @@ export async function createPost(input: {
   conversationId?: string | null
   body: string
   mediaAssetId?: string | null
+  imageUrl?: string | null
   status: string
   source: string
   scheduledAt?: Date | null
@@ -237,6 +256,7 @@ export async function createPost(input: {
   }
   if (input.conversationId) data.conversation = input.conversationId
   if (input.mediaAssetId) data.media = input.mediaAssetId
+  if (input.imageUrl) data.imageUrl = input.imageUrl
   if (input.scheduledAt) data.scheduledAt = input.scheduledAt.toISOString()
   const row = await createRecord('social_posts', data)
   return row.id
@@ -245,6 +265,7 @@ export async function createPost(input: {
 export async function updatePost(id: string, patch: Partial<{
   body: string
   mediaAssetId: string | null
+  imageUrl: string | null
   status: string
   scheduledAt: Date | null
   duplicateWarning: string | null
@@ -252,6 +273,7 @@ export async function updatePost(id: string, patch: Partial<{
   const data: Record<string, unknown> = {}
   if (patch.body !== undefined) data.body = patch.body
   if (patch.mediaAssetId !== undefined) data.media = patch.mediaAssetId || ''
+  if (patch.imageUrl !== undefined) data.imageUrl = patch.imageUrl || ''
   if (patch.status !== undefined) data.status = patch.status
   if (patch.scheduledAt !== undefined) data.scheduledAt = iso(patch.scheduledAt)
   if (patch.duplicateWarning !== undefined) data.duplicateWarning = patch.duplicateWarning || ''
@@ -297,6 +319,14 @@ export async function createTarget(input: {
   externalId?: string | null
   externalUrl?: string | null
   publishedAt?: Date | null
+  impressions?: number | null
+  reach?: number | null
+  likes?: number | null
+  comments?: number | null
+  shares?: number | null
+  saves?: number | null
+  clicks?: number | null
+  metricsAt?: Date | null
 }) {
   const data: Record<string, unknown> = {
     post: input.postId,
@@ -309,6 +339,7 @@ export async function createTarget(input: {
   }
   if (input.accountId) data.account = input.accountId
   if (input.publishedAt) data.publishedAt = input.publishedAt.toISOString()
+  assignMetrics(data, input)
   const row = await createRecord('social_post_targets', data)
   return row.id
 }
@@ -321,6 +352,14 @@ export async function updateTarget(id: string, patch: Partial<{
   externalUrl: string | null
   error: string | null
   publishedAt: Date | null
+  impressions: number | null
+  reach: number | null
+  likes: number | null
+  comments: number | null
+  shares: number | null
+  saves: number | null
+  clicks: number | null
+  metricsAt: Date | null
 }>) {
   const data: Record<string, unknown> = {}
   if (patch.body !== undefined) data.body = patch.body
@@ -330,7 +369,17 @@ export async function updateTarget(id: string, patch: Partial<{
   if (patch.externalUrl !== undefined) data.externalUrl = patch.externalUrl || ''
   if (patch.error !== undefined) data.error = patch.error || ''
   if (patch.publishedAt !== undefined) data.publishedAt = iso(patch.publishedAt)
+  assignMetrics(data, patch)
   await updateRecord('social_post_targets', id, data)
+}
+
+const metricKeys = ['impressions', 'reach', 'likes', 'comments', 'shares', 'saves', 'clicks'] as const
+
+function assignMetrics(data: Record<string, unknown>, source: Partial<Record<(typeof metricKeys)[number], number | null | undefined>> & { metricsAt?: Date | null }) {
+  for (const key of metricKeys) {
+    if (source[key] !== undefined) data[key] = source[key]
+  }
+  if (source.metricsAt !== undefined) data.metricsAt = iso(source.metricsAt)
 }
 
 export async function deleteTargetsForPost(postId: string) {

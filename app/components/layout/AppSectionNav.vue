@@ -15,6 +15,7 @@ const items = computed(() => {
       { to: '/social', label: t('nav.overview'), on: (value: string) => value === '/social' || value.startsWith('/social/chat') },
       { to: '/social/accounts', label: t('social.accounts'), on: (value: string) => value.startsWith('/social/accounts') },
       { to: '/social/calendar', label: t('social.calendar'), on: (value: string) => value.startsWith('/social/calendar') },
+      { to: '/social/published', label: t('social.published'), on: (value: string) => value.startsWith('/social/published') },
       { to: '/social/compose', label: t('social.compose'), on: (value: string) => value.startsWith('/social/compose') },
     ]
   }

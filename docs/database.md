@@ -12,7 +12,7 @@ The Nuxt server uses a superuser (`POCKETBASE_ADMIN_EMAIL` / `POCKETBASE_ADMIN_P
 - `social_provider_apps` — per user, the developer-app client id and encrypted secret used to start OAuth.
 - `social_accounts` — platform, external id, encrypted tokens.
 - `folders`, `library_files` — the file library. `folders.parent` nests folders. `library_files.folder` is optional, so a file can sit at the root. The file field is protected, max 80 MB, with thumbs `200x200` and `800x0`. Deleting a folder deletes its children and files.
-- `social_posts`, `social_post_targets` — one post, several platforms. `source` is `local` or `synced`.
+- `social_posts`, `social_post_targets` — one post, several platforms. `source` is `local` or `synced`. A target stores the metrics for that account: `impressions`, `reach`, `likes`, `comments`, `shares`, `saves`, `clicks` and `metricsAt`. Empty numbers mean the platform did not return them. Strong, average and weak are calculated when the posts are read, and only against other published posts of the same account.
 - `site_articles`, `article_drafts` — inventory and SEO drafts.
 - `smtp_connections` — the user's mailbox.
 - `outreach_campaigns`, `outreach_steps`, `outreach_recipients`, `outreach_messages`.

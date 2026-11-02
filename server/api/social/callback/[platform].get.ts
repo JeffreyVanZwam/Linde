@@ -4,7 +4,7 @@ import { apiError } from '../../../utils/http'
 import { upsertSocialAccount } from '../../../utils/social/accounts'
 import { socialApp } from '../../../utils/social/apps'
 import { linkedinExchange, linkedinOrganizations, linkedinProfile } from '../../../utils/social/linkedin'
-import { metaAccounts, metaExchange, metaProfile } from '../../../utils/social/meta'
+import { instagramExchange, instagramProfile, metaAccounts, metaExchange, metaProfile } from '../../../utils/social/meta'
 import { saveConnectPending, saveLinkedInPending } from '../../../utils/social/pending'
 import { tiktokExchange, tiktokProfile } from '../../../utils/social/tiktok'
 import { youtubeChannel, youtubeExchange } from '../../../utils/social/youtube'
@@ -59,58 +59,54 @@ export default defineEventHandler(async (event) => {
       }))
     }
   }
-  else if (platform === 'meta') {
+  else if (platform === 'facebook') {
     const token = await metaExchange(code, app)
     const profile = await metaProfile(token.accessToken)
     if (!profile.externalId) apiError(400, 'Facebook-profiel heeft geen id')
-    const person = {
-      platform: 'facebook' as const,
-      ...profile,
-      accessToken: token.accessToken,
-      expiresAt: token.expiresAt,
-      meta: { authorType: 'person' },
-    }
+    let pages
     try {
-      const pages = await metaAccounts(token.accessToken)
-      if (!pages.length) {
-        await upsertSocialAccount(user.id, person)
-        return sendRedirect(event, accountsPath(locale, { connected: '1' }))
-      }
-      const pendingId = await saveConnectPending(user.id, 'meta', {
-        accessToken: token.accessToken,
-        refreshToken: null,
-        expiresAt: token.expiresAt ? token.expiresAt.toISOString() : null,
-        options: [
-          {
-            platform: 'facebook',
-            externalId: profile.externalId,
-            displayName: profile.displayName,
-            authorType: 'person',
-            accessToken: token.accessToken,
-          },
-          ...pages.flatMap((account) => {
-            if (account.platform !== 'facebook' && account.platform !== 'instagram') return []
-            return [{
-              platform: account.platform,
-              externalId: account.externalId,
-              displayName: account.displayName,
-              authorType: 'organization' as const,
-              accessToken: account.accessToken,
-              pageId: account.meta?.pageId,
-            }]
-          }),
-        ],
-      })
-      return sendRedirect(event, accountsPath(locale, { pending: pendingId }))
+      pages = await metaAccounts(token.accessToken, app, token.shortToken)
     }
     catch (error) {
-      await upsertSocialAccount(user.id, person)
       const message = error instanceof Error ? error.message : 'Bedrijfspagina\'s ophalen mislukte'
+      return sendRedirect(event, accountsPath(locale, { error: message.slice(0, 300) }))
+    }
+    if (!pages.length) {
       return sendRedirect(event, accountsPath(locale, {
-        connected: '1',
-        error: `Je persoonlijke profiel is gekoppeld. Bedrijfspagina's konden niet worden geladen: ${message}`.slice(0, 300),
+        error: 'Facebook stuurde geen bedrijfspagina terug, ook al was die in het venster gekozen. Controleer of je beheerder van de pagina bent en koppel opnieuw.',
       }))
     }
+    const pendingId = await saveConnectPending(user.id, 'facebook', {
+      accessToken: token.accessToken,
+      refreshToken: null,
+      expiresAt: token.expiresAt ? token.expiresAt.toISOString() : null,
+      options: pages.flatMap((account) => {
+        if (account.platform !== 'facebook') return []
+        return [{
+          platform: 'facebook' as const,
+          externalId: account.externalId,
+          displayName: account.displayName,
+          authorType: 'organization' as const,
+          accessToken: account.accessToken,
+          pageId: account.meta?.pageId,
+        }]
+      }),
+    })
+    return sendRedirect(event, accountsPath(locale, { pending: pendingId }))
+  }
+  else if (platform === 'instagram') {
+    const token = await instagramExchange(code, app)
+    const profile = await instagramProfile(token.accessToken, token.userId)
+    if (!profile.externalId) apiError(400, 'Instagram-account heeft geen id')
+    await upsertSocialAccount(user.id, {
+      platform: 'instagram',
+      externalId: profile.externalId,
+      displayName: profile.displayName,
+      accessToken: token.accessToken,
+      refreshToken: null,
+      expiresAt: token.expiresAt,
+      meta: { authorType: 'organization', auth: 'instagram' },
+    })
   }
   else if (platform === 'youtube') {
     const token = await youtubeExchange(code, app)

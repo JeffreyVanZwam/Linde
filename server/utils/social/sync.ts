@@ -1,6 +1,7 @@
-import { createPost, createTarget, findTargetByExternal, updateSocialAccount, updateTarget } from '../store'
+import { createPost, createTarget, findPost, findTargetByExternal, updatePost, updateSocialAccount, updateTarget } from '../store'
 import { readyAccount } from './accounts'
 import { linkedinRecent } from './linkedin'
+import { metricPatch, refreshAccountMetrics } from './metrics'
 import { metaRecent } from './meta'
 import { tiktokRecent } from './tiktok'
 import type { RemotePost } from './types'
@@ -22,22 +23,33 @@ export async function syncAccount(accountId: string) {
   for (const post of posts) {
     const existing = await findTargetByExternal(row.id, post.externalId)
     if (existing) {
+      const publishedAt = post.publishedAt || existing.publishedAt
+      const metrics = metricsOf(post)
       await updateTarget(existing.id, {
         body: post.body,
         title: post.title || null,
         externalUrl: post.url || null,
-        publishedAt: post.publishedAt || existing.publishedAt,
+        publishedAt,
+        ...(metrics || {}),
       })
+      const parent = await findPost(existing.postId)
+      if (parent?.source === 'synced' && (publishedAt || post.imageUrl)) {
+        await updatePost(parent.id, {
+          ...(publishedAt ? { scheduledAt: publishedAt } : {}),
+          ...(post.imageUrl ? { imageUrl: post.imageUrl } : {}),
+        })
+      }
       continue
     }
     const postId = await createPost({
       userId: row.userId,
       body: post.body,
+      imageUrl: post.imageUrl || null,
       status: 'published',
       source: 'synced',
       scheduledAt: post.publishedAt || new Date(),
     })
-    await createTarget({
+    const targetId = await createTarget({
       postId,
       accountId: row.id,
       platform: account.platform,
@@ -48,7 +60,21 @@ export async function syncAccount(accountId: string) {
       externalUrl: post.url || null,
       publishedAt: post.publishedAt || new Date(),
     })
+    const metrics = metricsOf(post)
+    if (metrics) await updateTarget(targetId, metrics)
+  }
+  try {
+    const metricsWarning = await refreshAccountMetrics(accountId)
+    if (metricsWarning) warning = [warning, metricsWarning].filter(Boolean).join(' ')
+  }
+  catch (error) {
+    const message = error instanceof Error ? error.message : 'Cijfers ophalen mislukte'
+    warning = [warning, message].filter(Boolean).join(' ')
   }
   await updateSocialAccount(row.id, { lastSyncAt: new Date() })
   return { imported: posts.length, warning }
+}
+
+function metricsOf(post: RemotePost) {
+  return post.metrics ? metricPatch(post.metrics) : null
 }

@@ -1,7 +1,7 @@
 import { fileBlob } from '../bytes'
 import { appBaseUrl } from '../http'
-import { formPost, jsonRequest, readString } from './http'
-import type { OAuthApp, PublishInput, PublishResult, RemotePost, TokenSet } from './types'
+import { chunks, formPost, jsonRequest, readCount, readString } from './http'
+import type { OAuthApp, PostMetrics, PublishInput, PublishResult, RemotePost, TokenSet } from './types'
 
 const version = '202609'
 const scopes = 'openid profile email w_member_social w_organization_social r_organization_social rw_organization_admin'
@@ -84,15 +84,83 @@ export async function linkedinRecent(token: string, externalId: string, authorTy
     headers: linkedinHeaders(),
   })
   const elements = Array.isArray(data.elements) ? data.elements : []
-  return elements.map((item) => {
+  const posts: RemotePost[] = []
+  for (const item of elements) {
     const post = item as Record<string, unknown>
-    return {
-      externalId: readString(post, 'id'),
+    const externalId = readString(post, 'id')
+    if (!externalId) continue
+    posts.push({
+      externalId,
       body: readString(post, 'commentary'),
       url: null,
-      publishedAt: null,
+      imageUrl: await linkedinImage(token, post),
+      publishedAt: linkedinTime(post.publishedAt) || linkedinTime(post.createdAt),
+    })
+  }
+  return posts
+}
+
+async function linkedinImage(token: string, post: Record<string, unknown>) {
+  const content = post.content as Record<string, unknown> | undefined
+  const media = content?.media as Record<string, unknown> | undefined
+  const multi = content?.multiImage as { images?: Array<Record<string, unknown>> } | undefined
+  const urn = readString(media || {}, 'id') || readString(multi?.images?.[0] || {}, 'id')
+  if (!urn) return null
+  try {
+    const data = await jsonRequest(`https://api.linkedin.com/rest/images/${encodeURIComponent(urn)}`, {
+      token,
+      headers: linkedinHeaders(),
+    })
+    return readString(data, 'downloadUrl') || null
+  }
+  catch {
+    return null
+  }
+}
+
+export async function linkedinMetrics(token: string, organizationId: string, externalIds: string[]) {
+  const metrics = new Map<string, PostMetrics>()
+  const warnings: string[] = []
+  const shares = externalIds.filter(id => !id.includes('ugcPost'))
+  const ugc = externalIds.filter(id => id.includes('ugcPost'))
+  await pull('shares', shares.map(id => id.startsWith('urn:') ? id : `urn:li:share:${id}`))
+  await pull('ugcPosts', ugc.map(id => id.startsWith('urn:') ? id : `urn:li:ugcPost:${id}`))
+  return { metrics, warning: warnings[0]?.slice(0, 240) || null }
+
+  async function pull(param: 'shares' | 'ugcPosts', urns: string[]) {
+    for (const group of chunks(urns, 10)) {
+      try {
+        const list = `List(${group.map(urn => encodeURIComponent(urn)).join(',')})`
+        const org = encodeURIComponent(`urn:li:organization:${organizationId}`)
+        const data = await jsonRequest(`https://api.linkedin.com/rest/organizationalEntityShareStatistics?q=organizationalEntity&organizationalEntity=${org}&${param}=${list}`, {
+          token,
+          headers: linkedinHeaders(),
+        })
+        const elements = Array.isArray(data.elements) ? data.elements as Record<string, unknown>[] : []
+        for (const element of elements) {
+          const id = readString(element, 'share') || readString(element, 'ugcPost')
+          const stats = (element.totalShareStatistics || {}) as Record<string, unknown>
+          if (!id) continue
+          const value: PostMetrics = {
+            impressions: readCount(stats.impressionCount),
+            reach: readCount(stats.uniqueImpressionsCount),
+            likes: readCount(stats.likeCount),
+            comments: readCount(stats.commentCount),
+            shares: readCount(stats.shareCount),
+            saves: null,
+            clicks: readCount(stats.clickCount),
+          }
+          metrics.set(id, value)
+          for (const original of externalIds) {
+            if (original === id || id.endsWith(original) || original.endsWith(id)) metrics.set(original, value)
+          }
+        }
+      }
+      catch (error) {
+        warnings.push(error instanceof Error ? error.message : 'LinkedIn-cijfers mislukt')
+      }
     }
-  }).filter(post => post.externalId)
+  }
 }
 
 export async function linkedinPublish(token: string, externalId: string, input: PublishInput, authorType?: string): Promise<PublishResult> {
@@ -117,6 +185,13 @@ export async function linkedinPublish(token: string, externalId: string, input: 
     },
   })
   return { externalId: readString(data, 'id') || `linkedin-${Date.now()}` }
+}
+
+function linkedinTime(value: unknown) {
+  const numeric = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN
+  if (!Number.isFinite(numeric) || numeric <= 0) return null
+  const date = new Date(numeric > 1e12 ? numeric : numeric * 1000)
+  return Number.isNaN(date.getTime()) ? null : date
 }
 
 function linkedinAuthorUrn(externalId: string, authorType?: string) {

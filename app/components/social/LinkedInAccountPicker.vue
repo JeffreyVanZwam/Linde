@@ -12,10 +12,11 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const facebookOnly = computed(() => props.options.length > 0 && props.options.every(option => option.platform === 'facebook'))
 
 function kind(option: { authorType: 'person' | 'organization', platform?: string }) {
   if (option.platform === 'instagram') return 'Instagram'
-  if (option.authorType === 'organization') return t('social.linkedinPage')
+  if (option.platform === 'facebook' || option.authorType === 'organization') return t('social.linkedinPage')
   return t('social.linkedinProfile')
 }
 const selected = ref(props.options[0]?.externalId || '')
@@ -48,7 +49,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
         {{ t('social.linkedinChooseTitle') }}
       </h2>
       <p class="mt-2 text-sm text-muted">
-        {{ t('social.linkedinChooseLead') }}
+        {{ facebookOnly ? t('social.facebookChooseLead') : t('social.linkedinChooseLead') }}
       </p>
       <div class="mt-5 space-y-2">
         <label

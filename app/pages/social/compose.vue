@@ -10,7 +10,7 @@ const posts = await api<Array<{
   status: string
   scheduledAt: string | null
   duplicateWarning: string | null
-  targets: Array<{ accountId: string | null, platform: string, body: string, title: string | null }>
+  targets: Array<{ accountId: string | null, platform: string, body: string, title: string | null, duplicateWarning: string | null }>
 }>>('/api/social/posts')
 
 const existing = posts.find(post => post.id === route.query.post)
@@ -18,15 +18,17 @@ const selected = ref<string[]>(existing?.targets.map(target => target.accountId)
 const body = ref(existing?.body || '')
 const titles = reactive<Record<string, string>>({})
 const bodies = reactive<Record<string, string>>({})
+const targetWarnings = reactive<Record<string, string>>({})
+const blocked = ref<string[]>([])
 for (const account of accounts) {
   const target = existing?.targets.find(item => item.accountId === account.id)
   titles[account.id] = target?.title || ''
   bodies[account.id] = target?.body || existing?.body || ''
+  if (target?.duplicateWarning) targetWarnings[account.id] = target.duplicateWarning
 }
 const scheduledAt = ref(existing?.scheduledAt ? existing.scheduledAt.slice(0, 16) : '')
 const mediaId = ref(existing?.mediaAssetId || '')
 const prompt = ref('')
-const warning = ref(existing?.duplicateWarning || '')
 const editing = ref(false)
 
 function accountLabel(account: { displayName: string, platform: string, authorType: string | null }) {
@@ -61,11 +63,19 @@ async function save(status: 'draft' | 'scheduled') {
   error.value = ''
   try {
     const path = existing ? `/api/social/posts/${existing.id}` : '/api/social/posts'
-    const result = await api<{ duplicateWarning: string | null }>(path, {
+    const result = await api<{
+      duplicateWarning: string | null
+      targets: Array<{ accountId: string, status: string, duplicateWarning: string | null }>
+    }>(path, {
       method: existing ? 'PUT' : 'POST',
       body: payload(status),
     })
-    warning.value = result.duplicateWarning || ''
+    blocked.value = []
+    for (const accountId of selected.value) delete targetWarnings[accountId]
+    for (const target of result.targets) {
+      if (target.duplicateWarning) targetWarnings[target.accountId] = target.duplicateWarning
+      if (status === 'scheduled' && target.status === 'draft') blocked.value.push(target.accountId)
+    }
   }
   catch (cause) {
     error.value = errorText(cause) || t('common.error')
@@ -140,6 +150,10 @@ async function retry() {
           :rows="3"
           @update:model-value="bodies[account.id] = $event"
         />
+        <p v-if="targetWarnings[account.id]" class="mt-2 rounded-2xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {{ t('social.duplicate') }}: {{ targetWarnings[account.id] }}
+          <span v-if="blocked.includes(account.id)"> {{ t('social.notScheduled') }}</span>
+        </p>
       </label>
     </div>
     <UiField :label="t('social.generate')">
@@ -161,9 +175,6 @@ async function retry() {
     <UiField :label="t('social.schedule')">
       <UiInput v-model="scheduledAt" type="datetime-local" />
     </UiField>
-    <p v-if="warning" class="rounded-2xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
-      {{ t('social.duplicate') }}: {{ warning }}
-    </p>
     <UiAlert :message="error" />
     <div class="flex flex-wrap gap-2">
       <UiButton type="submit" :disabled="busy">

@@ -4,7 +4,7 @@
 
 Linde is a local-first marketing dashboard built with Nuxt. Register, point it at a website, and let Brain extract a brand profile. From there, chat for strategy, social posts, SEO/GEO articles and outreach. The default text model is free and needs no key. OpenAI, Anthropic and Gemini stay available when you add your own keys.
 
-Social publishing supports LinkedIn, Meta (Facebook and Instagram), YouTube and TikTok. On Accounts you save a developer app, then log in at the platform to connect a profile or page. Pick a theme in the header (Cyprus, Plum, Alabaster or Mint). On a phone, Linde installs as a PWA.
+Social publishing supports LinkedIn, Facebook, Instagram, YouTube and TikTok. On Accounts you save a developer app, then log in at the platform to connect a profile or page. Facebook and Instagram are separate logins and can share one Meta app. Pick a theme in the header (Cyprus, Plum, Alabaster or Mint). On a phone, Linde installs as a PWA.
 
 The app runs on your machine. PocketBase, uploads and API keys stay local unless you point file storage at S3.
 
@@ -28,7 +28,7 @@ In `.env`, change at least `ENCRYPTION_KEY` and `POCKETBASE_ADMIN_PASSWORD`. Cha
 - Brain reads the logo, images, colours, fonts, company story and tone of voice from a URL. Those files land in the Brain folder.
 - Files: folders you create, thumbnails for images, icons for other types, and a choice between local disk and S3.
 - The strategy chat uses that brand profile.
-- Social: OAuth for LinkedIn, Meta (Facebook and Instagram), YouTube and TikTok. Drafts, platform-specific copy, a duplicate warning, image generation or editing, scheduling and a calendar.
+- Social: OAuth for LinkedIn, Facebook, Instagram, YouTube and TikTok. Drafts, platform-specific copy, a duplicate warning, image generation or editing, scheduling and a calendar.
 - SEO/GEO: an articles URL and sitemap, then a chat that writes a structured draft.
 - Outreach: sample emails, SMTP or an HTTP mail API, approval, scheduling and a cron that sends only approved mail.
 

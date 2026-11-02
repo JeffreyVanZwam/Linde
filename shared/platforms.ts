@@ -4,7 +4,7 @@ export type ChatModule = (typeof chatModules)[number]
 export const socialPlatforms = ['linkedin', 'facebook', 'instagram', 'youtube', 'tiktok'] as const
 export type SocialPlatform = (typeof socialPlatforms)[number]
 
-export const connectProviders = ['linkedin', 'meta', 'youtube', 'tiktok'] as const
+export const connectProviders = ['linkedin', 'facebook', 'instagram', 'youtube', 'tiktok'] as const
 export type ConnectProvider = (typeof connectProviders)[number]
 
 export const postStatuses = ['draft', 'scheduled', 'publishing', 'published', 'failed'] as const
@@ -16,6 +16,18 @@ export const platformLimits: Record<SocialPlatform, { body: number; title?: numb
   instagram: { body: 2200, requires: 'image' },
   youtube: { body: 5000, title: 100, requires: 'video' },
   tiktok: { body: 2200, title: 150, requires: 'video' },
+}
+
+export const platformLabels: Record<SocialPlatform, string> = {
+  linkedin: 'LinkedIn',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  youtube: 'YouTube',
+  tiktok: 'TikTok',
+}
+
+export function platformLabel(platform: string) {
+  return isSocialPlatform(platform) ? platformLabels[platform] : platform
 }
 
 export function isSocialPlatform(value: string): value is SocialPlatform {

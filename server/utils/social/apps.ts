@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import { connectProviders, type ConnectProvider } from '~~/shared/platforms'
 import { decrypt, encrypt } from '../crypto'
-import { appBaseUrl } from '../http'
-import { createRecord, filterOf, firstRecord, listRecords, updateRecord, type PbRecord } from '../pb'
+import { appBaseUrl, httpsBaseUrl } from '../http'
+import { createRecord, filterOf, firstRecord, listRecords, removeRecord, updateRecord, type PbRecord } from '../pb'
 import type { OAuthApp } from './types'
 
 export const tiktokPrivacyLevels = ['SELF_ONLY', 'MUTUAL_FOLLOW_FRIENDS', 'FOLLOWER_OF_CREATOR', 'PUBLIC_TO_EVERYONE'] as const
@@ -11,6 +11,7 @@ export const socialAppViewSchema = z.object({
   provider: z.enum(connectProviders),
   clientId: z.string(),
   configured: z.boolean(),
+  stored: z.boolean(),
   privacy: z.enum(tiktokPrivacyLevels),
   redirectUri: z.string(),
 })
@@ -20,7 +21,8 @@ export type SocialAppView = z.infer<typeof socialAppViewSchema>
 
 const envNames: Record<ConnectProvider, [string, string]> = {
   linkedin: ['LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET'],
-  meta: ['META_APP_ID', 'META_APP_SECRET'],
+  facebook: ['META_APP_ID', 'META_APP_SECRET'],
+  instagram: ['INSTAGRAM_APP_ID', 'INSTAGRAM_APP_SECRET'],
   youtube: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
   tiktok: ['TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET'],
 }
@@ -53,6 +55,17 @@ function envApp(provider: ConnectProvider): OAuthApp | null {
   return { clientId, clientSecret, privacy }
 }
 
+async function appRow(userId: string, provider: ConnectProvider) {
+  const row = await findApp(userId, provider)
+  if (row || provider !== 'facebook') return row
+  return findApp(userId, 'meta')
+}
+
+function legacyRow(rows: SocialAppRow[], provider: ConnectProvider) {
+  if (provider !== 'facebook') return undefined
+  return rows.find(item => item.provider === 'meta')
+}
+
 async function findApp(userId: string, provider: string) {
   const row = await firstRecord('social_provider_apps', await filterOf(
     'user = {:user} && provider = {:provider}',
@@ -62,7 +75,7 @@ async function findApp(userId: string, provider: string) {
 }
 
 export async function socialApp(userId: string, provider: ConnectProvider): Promise<OAuthApp | null> {
-  const row = await findApp(userId, provider)
+  const row = await appRow(userId, provider)
   if (!row) return envApp(provider)
   const privacy = tiktokPrivacyLevels.find(level => level === row.privacy) || 'SELF_ONLY'
   return { clientId: row.clientId, clientSecret: decrypt(row.clientSecretEnc), privacy }
@@ -73,17 +86,24 @@ export async function listSocialApps(userId: string): Promise<SocialAppView[]> {
     filter: await filterOf('user = {:user}', { user: userId }),
   })).map(mapApp)
   return socialAppsResponseSchema.parse(connectProviders.map((provider) => {
-    const row = rows.find(item => item.provider === provider)
+    const own = rows.find(item => item.provider === provider)
+    const row = own || legacyRow(rows, provider)
     const fallback = envApp(provider)
     const privacy = tiktokPrivacyLevels.find(level => level === (row?.privacy || fallback?.privacy)) || 'SELF_ONLY'
     return {
       provider,
       clientId: row?.clientId || fallback?.clientId || '',
       configured: Boolean(row || fallback),
+      stored: Boolean(own),
       privacy,
-      redirectUri: `${appBaseUrl()}/api/social/callback/${provider}`,
+      redirectUri: `${provider === 'instagram' ? httpsBaseUrl() : appBaseUrl()}/api/social/callback/${provider}`,
     }
   }))
+}
+
+export async function deleteSocialApp(userId: string, provider: ConnectProvider) {
+  const existing = await findApp(userId, provider)
+  if (existing) await removeRecord('social_provider_apps', existing.id)
 }
 
 export async function socialReady(userId: string) {
@@ -103,6 +123,10 @@ export async function saveSocialApp(userId: string, input: {
   if (!secret) {
     if (existing) secret = decrypt(existing.clientSecretEnc)
     else if (fallback && fallback.clientId === input.clientId) secret = fallback.clientSecret
+  }
+  if (!secret && input.provider === 'facebook') {
+    const legacy = await findApp(userId, 'meta')
+    if (legacy && legacy.clientId === input.clientId) secret = decrypt(legacy.clientSecretEnc)
   }
   if (!secret) throw createError({ statusCode: 400, statusMessage: 'Client secret is verplicht' })
   const values = {

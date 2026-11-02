@@ -4,7 +4,7 @@ Copy `.env.example` to `.env`. Nuxt reads everything below at startup.
 
 | Variable | Role |
 | --- | --- |
-| `APP_URL` | Public origin, locally `http://localhost:3000`. OAuth redirects are built from this. `BETTER_AUTH_URL` still works as a fallback. |
+| `APP_URL` | Public origin, locally `http://localhost:3000`. OAuth redirects are built from this. `npm run dev` also serves `https://localhost:3000` on the same app. Instagram's redirect URI uses that https origin, because Instagram only accepts https. `BETTER_AUTH_URL` still works as a fallback. |
 | `POCKETBASE_URL` | PocketBase API, default `http://127.0.0.1:8090`. The browser uses this for live file updates. |
 | `POCKETBASE_ADMIN_EMAIL` / `POCKETBASE_ADMIN_PASSWORD` | Superuser for the PocketBase process. Not an app login. |
 | `ENCRYPTION_KEY` | Key for OAuth tokens and the SMTP password. |
@@ -19,8 +19,8 @@ Copy `.env.example` to `.env`. Nuxt reads everything below at startup.
 | `MAIL_API_URL` / `MAIL_API_KEY` | Optional HTTP mail, JSON with `from`, `to`, `subject`, `text`, `html`. |
 | `OUTREACH_DAILY_LIMIT` | Maximum outreach emails sent per user per day. |
 
-Social apps are not environment variables. On Social → Accounts each user saves the developer-app client ID and secret, then logs in at the platform to link a profile or page. The redirect URI is `{BETTER_AUTH_URL}/api/social/callback/<provider>` with provider `linkedin`, `meta`, `youtube` or `tiktok`. TikTok visibility defaults to `SELF_ONLY`.
+Social apps are not environment variables. On Social → Accounts each user saves the developer-app client ID and secret, then logs in at the platform to link a profile or page. The redirect URI is `{BETTER_AUTH_URL}/api/social/callback/<provider>` with provider `linkedin`, `facebook`, `instagram`, `youtube` or `tiktok`. Facebook uses the Meta app id and secret. Instagram login needs the separate Instagram App ID and secret (`INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`), shown under Instagram → Business login settings. Each provider has its own redirect URI. TikTok visibility defaults to `SELF_ONLY`.
 
-If `LINKEDIN_*`, `META_APP_*`, `GOOGLE_CLIENT_*`, `TIKTOK_CLIENT_*` or `TIKTOK_PRIVACY` are already set, they are used until that user saves credentials in the app. New setups do not need them.
+If `LINKEDIN_*`, `META_APP_*`, `INSTAGRAM_APP_*`, `GOOGLE_CLIENT_*`, `TIKTOK_CLIENT_*` or `TIKTOK_PRIVACY` are already set, they are used until that user saves credentials in the app. New setups do not need them.
 
 Instagram cannot fetch a local image. Set `APP_URL` to a public address (for example a tunnel) when you want to publish to Instagram. File storage is not an environment variable: an admin chooses local disk or S3 under Settings. S3 needs a bucket, region, endpoint, access key and secret. See [Database](database.md).

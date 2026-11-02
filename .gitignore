@@ -22,3 +22,6 @@ logs
 .env
 .env.*
 !.env.example
+
+# Local TLS certificate for https://localhost
+.certs

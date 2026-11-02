@@ -1,8 +1,10 @@
 import * as cheerio from 'cheerio'
 import { generateObject } from 'ai'
 import { z } from 'zod'
+import { legacyFromDossier, type BrandDossier } from '~~/shared/dossier'
 import { aiConfig, getLanguageModel, hasLanguageModel } from '../ai'
 import { saveMedia } from '../media'
+import { generateDossier } from './dossier'
 
 const brandSchema = z.object({
   companyName: z.string(),
@@ -18,6 +20,7 @@ export type ExtractedBrand = z.infer<typeof brandSchema> & {
   websiteUrl: string
   logoMediaId: string | null
   imageIds: string[]
+  dossier: BrandDossier
 }
 
 const genericFonts = new Set(['inherit', 'initial', 'unset', 'serif', 'sans-serif', 'monospace', 'system-ui', 'ui-sans-serif', 'ui-serif', 'emoji', 'cursive', 'fantasy'])
@@ -46,43 +49,62 @@ export async function extractBrand(userId: string, websiteUrl: string, locale: '
     fonts: page.fonts.slice(0, 4),
   }
 
-  let narrative = heuristic
-  if (hasLanguageModel()) {
-    try {
-      const ai = aiConfig()
-      const { object } = await generateObject({
-        model: getLanguageModel(),
-        maxRetries: ai.tier === 'free' ? 0 : 2,
-        schema: brandSchema,
-        abortSignal: AbortSignal.timeout(25_000),
-        prompt: [
-          locale === 'en'
-            ? 'Extract a brand profile from this website. Write in English. Keep the tone description concrete and usable by a copywriter.'
-            : 'Extraheer een merkprofiel uit deze website. Schrijf in het Nederlands. De tone-of-voice moet concreet genoeg zijn voor een copywriter.',
-          `URL: ${page.finalUrl}`,
-          `Titel: ${page.title}`,
-          `Beschrijving: ${page.description}`,
-          `Kleuren: ${page.colors.join(', ')}`,
-          `Fonts: ${page.fonts.join(', ')}`,
-          `Tekst:\n${page.text.slice(0, 8000)}`,
-        ].join('\n\n'),
-      })
-      narrative = {
-        ...object,
-        colors: object.colors.length ? object.colors : heuristic.colors,
-        fonts: object.fonts.length ? object.fonts : heuristic.fonts,
-      }
-    }
-    catch {
-      narrative = heuristic
-    }
-  }
+  const [narrative, dossier] = await Promise.all([
+    narrate(page, locale, heuristic),
+    generateDossier({
+      locale,
+      url: page.finalUrl,
+      title: page.title,
+      description: page.description,
+      text: page.text,
+    }, heuristic.companyName),
+  ])
+  const legacy = legacyFromDossier(dossier)
 
   return {
     websiteUrl: page.finalUrl,
     logoMediaId,
     imageIds,
-    ...narrative,
+    companyName: legacy.companyName || narrative.companyName,
+    whoTheyAre: legacy.whoTheyAre || narrative.whoTheyAre,
+    whatTheyDo: legacy.whatTheyDo || narrative.whatTheyDo,
+    audience: legacy.audience || narrative.audience,
+    toneOfVoice: legacy.toneOfVoice || narrative.toneOfVoice,
+    colors: narrative.colors,
+    fonts: narrative.fonts,
+    dossier,
+  }
+}
+
+async function narrate(page: Awaited<ReturnType<typeof readPage>>, locale: 'nl' | 'en', heuristic: z.infer<typeof brandSchema>) {
+  if (!hasLanguageModel()) return heuristic
+  try {
+    const ai = aiConfig()
+    const { object } = await generateObject({
+      model: getLanguageModel(),
+      maxRetries: ai.tier === 'free' ? 0 : 2,
+      schema: brandSchema,
+      abortSignal: AbortSignal.timeout(25_000),
+      prompt: [
+        locale === 'en'
+          ? 'Extract a brand profile from this website. Write in English. Keep the tone description concrete and usable by a copywriter.'
+          : 'Extraheer een merkprofiel uit deze website. Schrijf in het Nederlands. De tone-of-voice moet concreet genoeg zijn voor een copywriter.',
+        `URL: ${page.finalUrl}`,
+        `Titel: ${page.title}`,
+        `Beschrijving: ${page.description}`,
+        `Kleuren: ${page.colors.join(', ')}`,
+        `Fonts: ${page.fonts.join(', ')}`,
+        `Tekst:\n${page.text.slice(0, 8000)}`,
+      ].join('\n\n'),
+    })
+    return {
+      ...object,
+      colors: object.colors.length ? object.colors : heuristic.colors,
+      fonts: object.fonts.length ? object.fonts : heuristic.fonts,
+    }
+  }
+  catch {
+    return heuristic
   }
 }
 

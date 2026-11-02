@@ -45,3 +45,18 @@ export function readString(data: Record<string, unknown>, key: string) {
   const value = data[key]
   return typeof value === 'string' ? value : ''
 }
+
+export function readCount(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.max(0, Math.round(value))
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return Math.max(0, Math.round(parsed))
+  }
+  return null
+}
+
+export function chunks<T>(items: T[], size: number) {
+  const groups: T[][] = []
+  for (let index = 0; index < items.length; index += size) groups.push(items.slice(index, index + size))
+  return groups
+}

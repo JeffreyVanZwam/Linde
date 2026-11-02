@@ -16,6 +16,7 @@ const schema = z.object({
   toneOfVoice: z.string().nullable().optional(),
   articlesUrl: z.string().nullable().optional(),
   onboardingCompleted: z.boolean().optional(),
+  dossier: z.unknown().optional(),
 })
 
 export default defineEventHandler(async (event) => {
