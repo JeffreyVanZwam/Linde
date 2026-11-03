@@ -62,12 +62,14 @@ async function test() {
       {{ t('settings.storageLead') }}
     </p>
     <form class="space-y-4" @submit.prevent="save">
-      <div class="flex gap-3 text-sm">
-        <label class="flex items-center gap-2">
-          <input v-model="form.mode" type="radio" value="local" :disabled="!admin"> {{ t('settings.local') }}
+      <div class="grid gap-3 sm:grid-cols-2">
+        <label class="rounded-[1.3rem] border p-4 transition" :class="form.mode === 'local' ? 'border-accent bg-soft' : 'border-line bg-canvas'">
+          <input v-model="form.mode" class="sr-only" type="radio" value="local" :disabled="!admin">
+          <span class="block font-display text-xl font-semibold tracking-tight">{{ t('settings.local') }}</span>
         </label>
-        <label class="flex items-center gap-2">
-          <input v-model="form.mode" type="radio" value="s3" :disabled="!admin"> {{ t('settings.s3') }}
+        <label class="rounded-[1.3rem] border p-4 transition" :class="form.mode === 's3' ? 'border-accent bg-soft' : 'border-line bg-canvas'">
+          <input v-model="form.mode" class="sr-only" type="radio" value="s3" :disabled="!admin">
+          <span class="block font-display text-xl font-semibold tracking-tight">{{ t('settings.s3') }}</span>
         </label>
       </div>
       <div v-if="form.mode === 's3'" class="grid gap-3 sm:grid-cols-2">

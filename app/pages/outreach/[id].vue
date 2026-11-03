@@ -13,6 +13,12 @@ const campaignId = String(route.params.id)
 const data = ref(await api<CampaignDetail>(`/api/outreach/campaigns/${campaignId}`))
 const csv = ref('')
 const error = ref('')
+const tab = ref('steps')
+const tabs = computed(() => [
+  { id: 'steps', label: t('outreach.steps') },
+  { id: 'people', label: t('outreach.recipients') },
+  { id: 'mail', label: t('shell.messages') },
+])
 
 async function reload() {
   data.value = await api<CampaignDetail>(`/api/outreach/campaigns/${campaignId}`)
@@ -51,76 +57,90 @@ async function approveAll() {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-5">
     <AppBack to="/outreach" />
-    <div>
-      <h1 class="font-display font-semibold tracking-tight text-5xl">
-        {{ data.campaign.name }}
-      </h1>
-      <p class="mt-3 max-w-2xl text-sm text-muted">
-        {{ data.campaign.audience }} · {{ data.campaign.offer }}
-      </p>
+    <AppPageHead :title="data.campaign.name" :lead="[data.campaign.audience, data.campaign.offer].filter(Boolean).join(' · ')" />
+    <div class="grid gap-3 sm:grid-cols-3">
+      <UiCard>
+        <p class="text-sm text-muted">{{ t('outreach.steps') }}</p>
+        <p class="mt-2 font-display text-4xl font-semibold tracking-tight">{{ data.steps.length }}</p>
+      </UiCard>
+      <UiCard tone="highlight">
+        <p class="text-sm opacity-80">{{ t('outreach.recipients') }}</p>
+        <p class="mt-2 font-display text-4xl font-semibold tracking-tight">{{ data.recipients.length }}</p>
+      </UiCard>
+      <UiCard tone="ink">
+        <p class="text-sm opacity-75">{{ t('shell.messages') }}</p>
+        <p class="mt-2 font-display text-4xl font-semibold tracking-tight">{{ data.messages.length }}</p>
+      </UiCard>
     </div>
-    <UiCard>
-      <h2 class="font-display font-semibold tracking-tight text-2xl">
-        {{ t('outreach.steps') }}
-      </h2>
-      <article v-for="step in data.steps" :key="step.id" class="mt-4 border-t border-line pt-4">
-        <p class="text-xs text-muted">
-          +{{ step.delayHours }}u
+    <UiTabs v-model="tab" :items="tabs" :label="data.campaign.name" />
+    <div v-if="tab === 'steps'" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <article v-for="(step, index) in data.steps" :key="step.id" class="rounded-[1.5rem] border border-line bg-surface p-5">
+        <p class="text-xs font-medium text-muted">
+          {{ index + 1 }} · +{{ step.delayHours }}u
         </p>
-        <p class="font-medium">
+        <p class="mt-2 font-display text-xl font-semibold tracking-tight">
           {{ step.subject }}
         </p>
-        <p class="whitespace-pre-wrap text-sm text-muted">
+        <p class="mt-3 line-clamp-6 whitespace-pre-wrap text-sm text-muted">
           {{ step.body }}
         </p>
       </article>
-    </UiCard>
-    <UiCard>
-      <h2 class="font-display font-semibold tracking-tight text-2xl">
-        {{ t('outreach.recipients') }}
-      </h2>
-      <form class="mt-3 space-y-3" @submit.prevent="addRecipients">
-        <UiTextarea v-model="csv" :placeholder="t('outreach.csv')" />
-        <UiButton type="submit">
+    </div>
+    <div v-else-if="tab === 'people'" class="grid items-start gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+      <UiCard>
+        <h2 class="font-display text-2xl font-semibold tracking-tight">
           {{ t('outreach.add') }}
-        </UiButton>
-      </form>
-      <p v-for="recipient in data.recipients" :key="recipient.id" class="mt-2 text-sm">
-        {{ recipient.email }} · {{ recipient.status }}
-      </p>
-      <UiButton class="mt-4" variant="ghost" @click="materialize">
-        {{ t('outreach.materialize') }}
-      </UiButton>
-    </UiCard>
-    <div class="flex gap-2">
+        </h2>
+        <form class="mt-3 space-y-3" @submit.prevent="addRecipients">
+          <UiTextarea v-model="csv" :placeholder="t('outreach.csv')" />
+          <div class="flex flex-wrap gap-2">
+            <UiButton type="submit">
+              {{ t('outreach.add') }}
+            </UiButton>
+            <UiButton type="button" variant="ghost" @click="materialize">
+              {{ t('outreach.materialize') }}
+            </UiButton>
+          </div>
+        </form>
+      </UiCard>
+      <div class="grid gap-2 sm:grid-cols-2">
+        <p v-for="recipient in data.recipients" :key="recipient.id" class="rounded-2xl border border-line bg-surface px-4 py-3 text-sm">
+          <span class="block truncate font-medium">{{ recipient.name || recipient.email }}</span>
+          <span class="text-muted">{{ recipient.email }} · {{ recipient.status }}</span>
+        </p>
+      </div>
+    </div>
+    <div v-else class="space-y-3">
       <UiButton variant="ghost" @click="approveAll">
         {{ t('outreach.approveAll') }}
       </UiButton>
-    </div>
-    <UiCard v-for="message in data.messages" :key="message.id">
-      <p class="text-xs uppercase text-muted">
-        {{ message.status }}
-      </p>
-      <p class="font-medium">
-        {{ message.subject }}
-      </p>
-      <p class="whitespace-pre-wrap text-sm text-muted">
-        {{ message.body }}
-      </p>
-      <div class="mt-3 flex flex-wrap gap-2">
-        <UiButton @click="update(message.id, 'approved')">
-          {{ t('outreach.approve') }}
-        </UiButton>
-        <UiButton variant="ghost" @click="update(message.id, 'scheduled', new Date(Date.now() + 3600_000).toISOString())">
-          {{ t('social.schedule') }}
-        </UiButton>
-        <UiButton variant="danger" @click="update(message.id, 'cancelled')">
-          {{ t('outreach.cancel') }}
-        </UiButton>
+      <div class="grid gap-3 lg:grid-cols-2">
+        <UiCard v-for="message in data.messages" :key="message.id">
+          <p class="text-xs uppercase text-muted">
+            {{ message.status }}
+          </p>
+          <p class="mt-1 font-medium">
+            {{ message.subject }}
+          </p>
+          <p class="mt-2 line-clamp-5 whitespace-pre-wrap text-sm text-muted">
+            {{ message.body }}
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <UiButton @click="update(message.id, 'approved')">
+              {{ t('outreach.approve') }}
+            </UiButton>
+            <UiButton variant="ghost" @click="update(message.id, 'scheduled', new Date(Date.now() + 3600_000).toISOString())">
+              {{ t('social.schedule') }}
+            </UiButton>
+            <UiButton variant="danger" @click="update(message.id, 'cancelled')">
+              {{ t('outreach.cancel') }}
+            </UiButton>
+          </div>
+        </UiCard>
       </div>
-    </UiCard>
+    </div>
     <UiAlert :message="error" />
   </div>
 </template>

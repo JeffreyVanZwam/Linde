@@ -156,38 +156,42 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div>
-      <h1 class="font-display font-semibold tracking-tight text-5xl">
-        {{ t('files.title') }}
-      </h1>
-      <p class="mt-3 max-w-2xl text-muted">
-        {{ t('files.lead') }}
-      </p>
-    </div>
-    <nav class="flex flex-wrap items-center gap-2 text-sm text-muted">
-      <button type="button" class="font-medium text-accent" @click="openFolder()">
-        {{ t('files.root') }}
-      </button>
-      <template v-for="crumb in data?.breadcrumb || []" :key="crumb.id">
-        <span>/</span>
-        <button type="button" class="font-medium text-accent" @click="openFolder(crumb.id)">
-          {{ crumb.name }}
-        </button>
+  <div class="space-y-5">
+    <AppPageHead :title="t('files.title')" :lead="t('files.lead')">
+      <template #actions>
+        <span class="rounded-full border border-line bg-surface px-3 py-2 text-sm text-muted">
+          {{ data?.folders.length || 0 }} {{ t('shell.folders') }}
+        </span>
+        <span class="rounded-full border border-line bg-surface px-3 py-2 text-sm text-muted">
+          {{ data?.files.length || 0 }} {{ t('files.title') }}
+        </span>
       </template>
-    </nav>
-    <form class="flex flex-wrap items-end gap-3" @submit.prevent="createFolder">
-      <UiField :label="t('files.folderName')" class="min-w-56 flex-1">
-        <UiInput v-model="folderName" :placeholder="t('files.newFolder')" />
-      </UiField>
-      <UiButton type="submit" :disabled="busy || !folderName.trim()">
-        {{ t('files.newFolder') }}
-      </UiButton>
-      <UiButton type="button" variant="ghost" :disabled="busy" @click="fileInput?.click()">
-        {{ t('files.upload') }}
-      </UiButton>
-      <input ref="fileInput" class="hidden" type="file" multiple @change="upload">
-    </form>
+    </AppPageHead>
+    <UiCard class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <nav class="flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted">
+        <button type="button" class="font-medium text-accent" @click="openFolder()">
+          {{ t('files.root') }}
+        </button>
+        <template v-for="crumb in data?.breadcrumb || []" :key="crumb.id">
+          <span>/</span>
+          <button type="button" class="font-medium text-accent" @click="openFolder(crumb.id)">
+            {{ crumb.name }}
+          </button>
+        </template>
+      </nav>
+      <form class="flex flex-wrap items-end gap-3" @submit.prevent="createFolder">
+        <UiField :label="t('files.folderName')" class="min-w-48 flex-1">
+          <UiInput v-model="folderName" :placeholder="t('files.newFolder')" />
+        </UiField>
+        <UiButton type="submit" :disabled="busy || !folderName.trim()">
+          {{ t('files.newFolder') }}
+        </UiButton>
+        <UiButton type="button" variant="ghost" :disabled="busy" @click="fileInput?.click()">
+          {{ t('files.upload') }}
+        </UiButton>
+        <input ref="fileInput" class="hidden" type="file" multiple @change="upload">
+      </form>
+    </UiCard>
     <UiAlert :message="message || (error ? t('common.error') : '')" />
     <p v-if="removing" class="flex flex-wrap items-center gap-3 rounded-3xl bg-red-50 px-4 py-3 text-sm text-red-800">
       {{ removing.kind === 'folder' ? t('files.deleteFolder') : t('files.deleteFile') }}
@@ -227,10 +231,14 @@ onBeforeUnmount(() => {
         {{ t('files.cancel') }}
       </UiButton>
     </form>
-    <div v-if="!(data?.folders.length || data?.files.length)" class="rounded-3xl border border-dashed border-line px-4 py-10 text-center text-muted">
+    <div v-if="!(data?.folders.length || data?.files.length)" class="rounded-[1.6rem] border border-dashed border-line bg-surface px-4 py-12 text-center text-muted">
       {{ t('files.empty') }}
     </div>
-    <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <div v-if="data?.folders.length" class="space-y-3">
+      <h2 class="font-display text-xl font-semibold tracking-tight">
+        {{ t('shell.folders') }}
+      </h2>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       <motion.article
         v-for="item in data?.folders || []"
         :key="item.id"
@@ -256,6 +264,13 @@ onBeforeUnmount(() => {
           </button>
         </div>
       </motion.article>
+    </div>
+    </div>
+    <div v-if="data?.files.length" class="space-y-3">
+      <h2 class="font-display text-xl font-semibold tracking-tight">
+        {{ t('files.title') }}
+      </h2>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       <motion.article
         v-for="file in data?.files || []"
         :key="file.id"
@@ -285,6 +300,7 @@ onBeforeUnmount(() => {
           </button>
         </div>
       </motion.article>
+      </div>
     </div>
   </div>
 </template>

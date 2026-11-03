@@ -4,62 +4,80 @@ const localePath = useLocalePath()
 const api = useRequestFetch()
 const drafts = await api<Array<{ id: string, title: string }>>('/api/seo/drafts')
 const articles = await api<Array<{ id: string, title: string, url: string }>>('/api/seo/articles')
+const tab = ref('drafts')
+const tabs = computed(() => [
+  { id: 'drafts', label: t('seo.drafts') },
+  { id: 'inventory', label: t('seo.inventory') },
+  { id: 'chats', label: t('chat.list') },
+])
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 class="font-display text-5xl font-semibold tracking-tight">
-          {{ t('seo.title') }}
-        </h1>
-        <p class="mt-3 max-w-2xl text-muted">
-          {{ t('seo.lead') }}
-        </p>
-      </div>
-      <UiButton :to="localePath('/seo/chat/new')">
-        {{ t('seo.newChat') }}
-      </UiButton>
+  <div class="space-y-5">
+    <AppPageHead :title="t('seo.title')" :lead="t('seo.lead')">
+      <template #actions>
+        <UiButton variant="ghost" :to="localePath('/seo/settings')">
+          {{ t('seo.settings') }}
+        </UiButton>
+        <UiButton :to="localePath('/seo/chat/new')">
+          {{ t('seo.newChat') }}
+        </UiButton>
+      </template>
+    </AppPageHead>
+
+    <div class="grid gap-3 sm:grid-cols-2">
+      <UiCard tone="highlight" class="flex items-end justify-between">
+        <div>
+          <p class="text-sm opacity-80">{{ t('seo.drafts') }}</p>
+          <p class="mt-1 font-display text-4xl font-semibold tracking-tight">{{ drafts.length }}</p>
+        </div>
+        <Icon name="solar:document-text-bold-duotone" class="size-8" />
+      </UiCard>
+      <UiCard tone="ink" class="flex items-end justify-between">
+        <div>
+          <p class="text-sm opacity-80">{{ t('seo.inventory') }}</p>
+          <p class="mt-1 font-display text-4xl font-semibold tracking-tight">{{ articles.length }}</p>
+        </div>
+        <Icon name="solar:library-bold-duotone" class="size-8" />
+      </UiCard>
     </div>
-    <div class="grid gap-4 lg:grid-cols-2">
-      <UiCard>
-        <h2 class="font-display text-xl font-semibold tracking-tight">
-          {{ t('seo.drafts') }}
-        </h2>
-        <p v-if="!drafts.length" class="mt-3 text-sm text-muted">
-          {{ t('seo.empty') }}
-        </p>
+
+    <UiTabs v-model="tab" :items="tabs" :label="t('seo.title')" />
+
+    <div v-if="tab === 'drafts'">
+      <p v-if="!drafts.length" class="text-sm text-muted">
+        {{ t('seo.empty') }}
+      </p>
+      <div v-else class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <NuxtLink
-          v-for="draft in drafts"
+          v-for="(draft, index) in drafts"
           :key="draft.id"
           :to="localePath(`/seo/articles/${draft.id}`)"
-          class="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-soft px-3 py-3 text-sm transition duration-200"
+          class="flex min-h-36 flex-col justify-between rounded-[1.5rem] border border-line bg-surface p-5 transition duration-200 hover:-translate-y-0.5"
+          :class="index === 0 ? 'bg-soft sm:col-span-2' : ''"
         >
-          <span class="min-w-0 truncate">{{ draft.title }}</span>
-          <Icon name="solar:alt-arrow-right-linear" class="size-4 shrink-0 text-muted" />
+          <Icon name="solar:document-bold-duotone" class="size-6 text-accent" />
+          <span class="mt-4 font-display text-xl font-semibold tracking-tight">{{ draft.title }}</span>
         </NuxtLink>
-      </UiCard>
-      <UiCard>
-        <h2 class="font-display text-xl font-semibold tracking-tight">
-          {{ t('seo.inventory') }}
-        </h2>
-        <a
-          v-for="article in articles"
-          :key="article.id"
-          :href="article.url"
-          class="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-soft px-3 py-3 text-sm text-accent transition duration-200"
-          target="_blank"
-        >
-          <span class="min-w-0 truncate">{{ article.title }}</span>
-          <Icon name="solar:arrow-right-up-linear" class="size-4 shrink-0" />
-        </a>
-      </UiCard>
+      </div>
     </div>
-    <section class="space-y-3">
-      <h2 class="font-display text-xl font-semibold tracking-tight">
-        {{ t('chat.list') }}
-      </h2>
-      <ChatList module="seo" />
-    </section>
+
+    <div v-else-if="tab === 'inventory'" class="grid gap-3 sm:grid-cols-2">
+      <a
+        v-for="article in articles"
+        :key="article.id"
+        :href="article.url"
+        class="flex items-center justify-between gap-3 rounded-[1.4rem] border border-line bg-surface px-4 py-4 text-sm transition duration-200 hover:-translate-y-0.5"
+        target="_blank"
+      >
+        <span class="min-w-0 truncate font-medium">{{ article.title }}</span>
+        <Icon name="solar:arrow-right-up-linear" class="size-4 shrink-0 text-accent" />
+      </a>
+      <p v-if="!articles.length" class="text-sm text-muted sm:col-span-2">
+        {{ t('seo.empty') }}
+      </p>
+    </div>
+
+    <ChatList v-else module="seo" tiles />
   </div>
 </template>

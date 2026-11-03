@@ -78,49 +78,53 @@ async function removeUser(user: ManagedUser) {
 
 <template>
   <section class="space-y-4">
-    <h2 class="font-display font-semibold tracking-tight text-3xl">
-      {{ t('settings.users') }}
-    </h2>
-    <p class="text-sm text-muted">
-      {{ t('settings.usersLead') }}
-    </p>
-    <form class="grid gap-3 sm:grid-cols-2" @submit.prevent="saveProfile">
-      <h3 class="font-display font-semibold tracking-tight text-2xl sm:col-span-2">
-        {{ t('settings.profile') }}
-      </h3>
-      <UiField :label="t('auth.name')"><UiInput v-model="profile.name" required /></UiField>
-      <UiField :label="t('settings.passwordOld')"><UiInput v-model="profile.oldPassword" type="password" /></UiField>
-      <UiField :label="t('settings.passwordNew')"><UiInput v-model="profile.password" type="password" minlength="8" /></UiField>
-      <div class="sm:col-span-2">
-        <UiButton type="submit">
-          {{ t('common.save') }}
-        </UiButton>
-      </div>
-    </form>
-    <form v-if="admin" class="grid gap-3 sm:grid-cols-2" @submit.prevent="addUser">
-      <h3 class="font-display font-semibold tracking-tight text-2xl sm:col-span-2">
-        {{ t('settings.createUser') }}
-      </h3>
-      <UiField :label="t('auth.name')"><UiInput v-model="created.name" required /></UiField>
-      <UiField :label="t('auth.email')"><UiInput v-model="created.email" type="email" required /></UiField>
-      <UiField :label="t('auth.password')"><UiInput v-model="created.password" type="password" required minlength="8" /></UiField>
-      <UiField :label="t('settings.role')">
-        <select v-model="created.role" class="w-full rounded-2xl border border-line bg-surface px-3 py-3 text-sm">
-          <option value="member">{{ t('settings.member') }}</option>
-          <option value="admin">{{ t('settings.admin') }}</option>
-        </select>
-      </UiField>
-      <div class="sm:col-span-2">
-        <UiButton type="submit">
+    <div>
+      <h2 class="font-display text-3xl font-semibold tracking-tight">
+        {{ t('settings.users') }}
+      </h2>
+      <p class="mt-2 text-sm text-muted">
+        {{ t('settings.usersLead') }}
+      </p>
+    </div>
+    <div class="grid items-start gap-4 xl:grid-cols-2">
+      <form class="grid gap-3 rounded-[1.6rem] border border-line bg-surface p-5 sm:grid-cols-2" @submit.prevent="saveProfile">
+        <h3 class="font-display text-2xl font-semibold tracking-tight sm:col-span-2">
+          {{ t('settings.profile') }}
+        </h3>
+        <UiField class="sm:col-span-2" :label="t('auth.name')"><UiInput v-model="profile.name" required /></UiField>
+        <UiField :label="t('settings.passwordOld')"><UiInput v-model="profile.oldPassword" type="password" /></UiField>
+        <UiField :label="t('settings.passwordNew')"><UiInput v-model="profile.password" type="password" minlength="8" /></UiField>
+        <div class="sm:col-span-2">
+          <UiButton type="submit">
+            {{ t('common.save') }}
+          </UiButton>
+        </div>
+      </form>
+      <form v-if="admin" class="grid gap-3 rounded-[1.6rem] border border-line bg-soft p-5 sm:grid-cols-2" @submit.prevent="addUser">
+        <h3 class="font-display text-2xl font-semibold tracking-tight sm:col-span-2">
           {{ t('settings.createUser') }}
-        </UiButton>
-      </div>
-    </form>
-    <ul v-if="admin" class="space-y-2">
-      <li v-for="user in users" :key="user.id" class="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-line bg-surface px-4 py-3">
-        <div>
-          <p class="font-medium">{{ user.name }}</p>
-          <p class="text-sm text-muted">{{ user.email }}</p>
+        </h3>
+        <UiField :label="t('auth.name')"><UiInput v-model="created.name" required /></UiField>
+        <UiField :label="t('auth.email')"><UiInput v-model="created.email" type="email" required /></UiField>
+        <UiField :label="t('auth.password')"><UiInput v-model="created.password" type="password" required minlength="8" /></UiField>
+        <UiField :label="t('settings.role')">
+          <select v-model="created.role" class="w-full rounded-2xl border border-line bg-surface px-3 py-3 text-sm">
+            <option value="member">{{ t('settings.member') }}</option>
+            <option value="admin">{{ t('settings.admin') }}</option>
+          </select>
+        </UiField>
+        <div class="sm:col-span-2">
+          <UiButton type="submit">
+            {{ t('settings.createUser') }}
+          </UiButton>
+        </div>
+      </form>
+    </div>
+    <ul v-if="admin" class="grid gap-3 md:grid-cols-2">
+      <li v-for="user in users" :key="user.id" class="flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border border-line bg-surface px-4 py-4">
+        <div class="min-w-0">
+          <p class="truncate font-medium">{{ user.name }}</p>
+          <p class="truncate text-sm text-muted">{{ user.email }}</p>
         </div>
         <div class="flex items-center gap-2">
           <select class="rounded-full border border-line bg-surface px-3 py-2 text-sm" :value="user.role" @change="changeRole(user, ($event.target as HTMLSelectElement).value as 'admin' | 'member')">

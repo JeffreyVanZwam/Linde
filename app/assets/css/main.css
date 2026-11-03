@@ -159,6 +159,15 @@ body {
   color: #142000;
 }
 
+.panel-ink {
+  background: var(--accent);
+  color: var(--sidebar-ink);
+}
+
+[data-theme="kiwi"] .panel-ink {
+  color: #142000;
+}
+
 [data-theme="kiwi"],
 [data-theme="caramel"] {
   color-scheme: dark;

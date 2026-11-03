@@ -152,34 +152,41 @@ async function save() {
     </UiCard>
     <UiAlert :message="error" />
     <form v-if="brand && dossier" class="space-y-5" @submit.prevent="save">
-      <div>
-        <h2 class="font-display font-semibold tracking-tight text-3xl">
-          {{ t('onboarding.review') }}
-        </h2>
-        <p class="mt-2 max-w-2xl text-sm text-muted">
-          {{ t('onboarding.reviewLead') }}
-        </p>
+      <div class="grid items-start gap-4 lg:grid-cols-[minmax(16rem,0.75fr)_minmax(0,1.25fr)]">
+        <UiCard tone="ink" class="flex min-h-56 flex-col justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.16em] opacity-70">
+              {{ t('onboarding.review') }}
+            </p>
+            <p class="mt-2 font-display text-3xl font-semibold tracking-tight">
+              {{ brand.companyName || t('onboarding.visuals') }}
+            </p>
+            <p class="mt-2 text-sm opacity-80">
+              {{ t('onboarding.reviewLead') }}
+            </p>
+          </div>
+          <div v-if="brand.logoMediaId || brand.imageIds.length" class="mt-4 flex gap-2 overflow-x-auto">
+            <img v-if="brand.logoMediaId" :src="`/api/media/${brand.logoMediaId}`" alt="" class="size-16 rounded-2xl object-cover ring-2 ring-white/30">
+            <img v-for="image in brand.imageIds" :key="image" :src="`/api/media/${image}`" alt="" class="size-16 rounded-2xl object-cover ring-2 ring-white/20">
+          </div>
+        </UiCard>
+        <UiCard>
+          <h2 class="font-display text-2xl font-semibold tracking-tight">
+            {{ t('onboarding.visuals') }}
+          </h2>
+          <p class="mt-1 text-sm text-muted">
+            {{ t('onboarding.visualsLead') }}
+          </p>
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <UiField :label="t('brain.colors')">
+              <UiInput v-model="colors" />
+            </UiField>
+            <UiField :label="t('brain.fonts')">
+              <UiInput v-model="fonts" />
+            </UiField>
+          </div>
+        </UiCard>
       </div>
-      <UiCard>
-        <h2 class="font-display text-2xl font-semibold tracking-tight">
-          {{ t('onboarding.visuals') }}
-        </h2>
-        <p class="mt-1 text-sm text-muted">
-          {{ t('onboarding.visualsLead') }}
-        </p>
-        <div v-if="brand.logoMediaId || brand.imageIds.length" class="mt-4 flex gap-3 overflow-x-auto">
-          <img v-if="brand.logoMediaId" :src="`/api/media/${brand.logoMediaId}`" alt="" class="h-20 w-20 rounded-2xl object-cover">
-          <img v-for="image in brand.imageIds" :key="image" :src="`/api/media/${image}`" alt="" class="h-20 w-20 rounded-2xl object-cover">
-        </div>
-        <div class="mt-4 grid gap-4 sm:grid-cols-2">
-          <UiField :label="t('brain.colors')">
-            <UiInput v-model="colors" />
-          </UiField>
-          <UiField :label="t('brain.fonts')">
-            <UiInput v-model="fonts" />
-          </UiField>
-        </div>
-      </UiCard>
       <DossierEditor v-model="dossier" />
       <UiButton type="submit" :disabled="busy">
         {{ t('onboarding.save') }}

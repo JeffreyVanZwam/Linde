@@ -35,6 +35,13 @@ const message = ref('')
 const error = ref('')
 const extracting = ref(false)
 const confirmOpen = ref(false)
+const tab = ref('profile')
+const tabs = computed(() => [
+  { id: 'profile', label: t('shell.profile') },
+  { id: 'story', label: t('shell.story') },
+  { id: 'dossier', label: t('brain.dossier') },
+])
+const swatches = computed(() => brand.colors.split(',').map(item => item.trim()).filter(Boolean))
 
 type ExtractedBrand = {
   websiteUrl: string | null
@@ -125,79 +132,109 @@ async function save() {
 </script>
 
 <template>
-  <form class="grid gap-5 lg:grid-cols-2" @submit.prevent="save">
-    <div class="lg:col-span-2">
-      <h1 class="font-display text-5xl font-semibold tracking-tight">
-        {{ t('brain.title') }}
-      </h1>
-      <p class="mt-3 text-muted">
+  <form class="space-y-5" @submit.prevent="save">
+    <AppPageHead :title="t('brain.title')">
+      <template #lead>
         {{ t('brain.lead') }}
         <NuxtLink :to="localePath('/files')" class="font-medium text-accent">{{ t('brain.files') }}</NuxtLink>
-      </p>
-    </div>
-    <div v-if="logo || images.length" class="flex gap-3 lg:col-span-2">
-      <img v-if="logo" :src="`/api/media/${logo}`" alt="" class="h-24 w-24 rounded-3xl object-cover">
-      <img v-for="image in images" :key="image" :src="`/api/media/${image}`" alt="" class="h-24 w-24 rounded-3xl object-cover">
-    </div>
-    <UiField :label="t('brain.website')">
-      <UiInput v-model="brand.websiteUrl" />
-    </UiField>
-    <UiField :label="t('brain.company')">
-      <UiInput v-model="brand.companyName" />
-    </UiField>
-    <div class="flex flex-wrap items-center gap-3 lg:col-span-2">
-      <UiButton type="button" variant="ghost" :disabled="extracting || !brand.websiteUrl.trim()" @click="confirmOpen = true">
-        {{ extracting ? t('common.loading') : t('brain.rerun') }}
-      </UiButton>
-      <p v-if="extracting" class="text-sm text-muted">
-        {{ t('onboarding.extracting') }}
-      </p>
-    </div>
-    <div v-if="dossier" class="lg:col-span-2">
-      <h2 class="font-display text-3xl font-semibold tracking-tight">
-        {{ t('brain.dossier') }}
-      </h2>
-      <p class="mt-2 max-w-2xl text-sm text-muted">
-        {{ t('brain.dossierLead') }}
-      </p>
-      <div class="mt-4 flex flex-wrap gap-2">
-        <UiButton variant="ghost" :to="localePath('/audit')">
-          {{ t('nav.audit') }}
+      </template>
+      <template #actions>
+        <UiButton type="button" variant="ghost" :disabled="extracting || !brand.websiteUrl.trim()" @click="confirmOpen = true">
+          {{ extracting ? t('common.loading') : t('brain.rerun') }}
         </UiButton>
-        <UiButton variant="ghost" :to="localePath('/foundation')">
-          {{ t('nav.foundation') }}
+        <UiButton type="submit">
+          {{ t('brain.save') }}
         </UiButton>
+      </template>
+    </AppPageHead>
+    <p v-if="extracting" class="text-sm text-muted">
+      {{ t('onboarding.extracting') }}
+    </p>
+    <p v-if="message" class="text-sm text-accent">
+      {{ message }}
+    </p>
+
+    <UiTabs v-model="tab" :items="tabs" :label="t('brain.title')" />
+
+    <div v-if="tab === 'profile'" class="grid items-start gap-4 lg:grid-cols-[minmax(16rem,0.8fr)_minmax(0,1.2fr)]">
+      <UiCard tone="ink" class="flex min-h-72 flex-col justify-between">
+        <div>
+          <p class="text-xs uppercase tracking-[0.16em] opacity-70">
+            {{ brand.companyName || t('brain.company') }}
+          </p>
+          <div v-if="logo || images.length" class="mt-4 flex gap-2 overflow-x-auto">
+            <img v-if="logo" :src="`/api/media/${logo}`" alt="" class="size-20 rounded-2xl object-cover ring-2 ring-white/30">
+            <img v-for="image in images" :key="image" :src="`/api/media/${image}`" alt="" class="size-20 rounded-2xl object-cover ring-2 ring-white/20">
+          </div>
+        </div>
+        <div v-if="swatches.length" class="mt-6 grid grid-cols-4 gap-2">
+          <span v-for="color in swatches" :key="color" class="aspect-square rounded-2xl ring-2 ring-white/25" :style="{ background: color }" />
+        </div>
+      </UiCard>
+      <UiCard class="grid gap-4 sm:grid-cols-2">
+        <UiField class="sm:col-span-2" :label="t('brain.website')">
+          <UiInput v-model="brand.websiteUrl" />
+        </UiField>
+        <UiField class="sm:col-span-2" :label="t('brain.company')">
+          <UiInput v-model="brand.companyName" />
+        </UiField>
+        <UiField :label="t('brain.colors')">
+          <UiInput v-model="brand.colors" />
+        </UiField>
+        <UiField :label="t('brain.fonts')">
+          <UiInput v-model="brand.fonts" />
+        </UiField>
+      </UiCard>
+    </div>
+
+    <div v-else-if="tab === 'story'">
+      <div v-if="dossier" class="grid gap-3 md:grid-cols-2">
+        <UiCard tone="soft">
+          <p class="text-sm text-muted">{{ t('brain.dossierLead') }}</p>
+        </UiCard>
+        <UiCard>
+          <p class="font-display text-2xl font-semibold tracking-tight">{{ brand.toneOfVoice || t('brain.tone') }}</p>
+        </UiCard>
+      </div>
+      <div v-else class="grid gap-3 md:grid-cols-2">
+        <UiCard>
+          <UiField :label="t('brain.who')">
+            <UiTextarea v-model="brand.whoTheyAre" />
+          </UiField>
+        </UiCard>
+        <UiCard>
+          <UiField :label="t('brain.what')">
+            <UiTextarea v-model="brand.whatTheyDo" />
+          </UiField>
+        </UiCard>
+        <UiCard>
+          <UiField :label="t('brain.audience')">
+            <UiTextarea v-model="brand.audience" />
+          </UiField>
+        </UiCard>
+        <UiCard tone="soft">
+          <UiField :label="t('brain.tone')">
+            <UiTextarea v-model="brand.toneOfVoice" />
+          </UiField>
+        </UiCard>
       </div>
     </div>
-    <template v-else>
-      <UiField class="lg:col-span-2" :label="t('brain.who')">
-        <UiTextarea v-model="brand.whoTheyAre" />
-      </UiField>
-      <UiField class="lg:col-span-2" :label="t('brain.what')">
-        <UiTextarea v-model="brand.whatTheyDo" />
-      </UiField>
-      <UiField class="lg:col-span-2" :label="t('brain.audience')">
-        <UiTextarea v-model="brand.audience" />
-      </UiField>
-      <UiField class="lg:col-span-2" :label="t('brain.tone')">
-        <UiTextarea v-model="brand.toneOfVoice" />
-      </UiField>
-    </template>
-    <UiField :label="t('brain.colors')">
-      <UiInput v-model="brand.colors" />
-    </UiField>
-    <UiField :label="t('brain.fonts')">
-      <UiInput v-model="brand.fonts" />
-    </UiField>
-    <div class="flex flex-wrap items-center gap-3 lg:col-span-2">
-      <UiButton type="submit">
-        {{ t('brain.save') }}
-      </UiButton>
-      <p v-if="message" class="text-sm text-accent">
-        {{ message }}
+
+    <div v-else class="grid gap-3 md:grid-cols-2">
+      <p class="text-sm text-muted md:col-span-2">
+        {{ t('brain.dossierLead') }}
       </p>
+      <NuxtLink :to="localePath('/audit')" class="flex min-h-40 flex-col justify-between rounded-[1.6rem] bg-cta p-5 text-cta-ink transition duration-200 hover:-translate-y-0.5">
+        <Icon name="solar:clipboard-check-bold-duotone" class="size-7" />
+        <span class="font-display text-3xl font-semibold tracking-tight">{{ t('nav.audit') }}</span>
+      </NuxtLink>
+      <NuxtLink :to="localePath('/foundation')" class="panel-ink flex min-h-40 flex-col justify-between rounded-[1.6rem] p-5 transition duration-200 hover:-translate-y-0.5">
+        <Icon name="solar:buildings-3-bold-duotone" class="size-7" />
+        <span class="font-display text-3xl font-semibold tracking-tight">{{ t('nav.foundation') }}</span>
+      </NuxtLink>
     </div>
-    <UiAlert class="lg:col-span-2" :message="error" />
+
+    <UiAlert :message="error" />
     <UiConfirmModal
       v-if="confirmOpen"
       :title="t('brain.rerunTitle')"

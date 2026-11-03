@@ -31,27 +31,33 @@ async function refresh() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl space-y-4">
+  <div class="space-y-5">
     <AppBack to="/seo" />
-    <form class="space-y-4" @submit.prevent="save">
-    <h1 class="font-display font-semibold tracking-tight text-5xl">
-      {{ t('seo.settings') }}
-    </h1>
-    <UiField :label="t('seo.url')">
-      <UiInput v-model="url" type="url" required />
-    </UiField>
-    <UiAlert :message="error" />
-    <p v-if="message" class="text-sm text-accent">
-      {{ message }}
-    </p>
-    <div class="flex gap-2">
-      <UiButton type="submit">
-        {{ t('seo.saveUrl') }}
-      </UiButton>
-      <UiButton type="button" variant="ghost" @click="refresh">
-        {{ t('seo.refresh') }}
-      </UiButton>
-    </div>
+    <AppPageHead :title="t('seo.settings')" :lead="t('seo.lead')" />
+    <form class="grid items-start gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)]" @submit.prevent="save">
+      <UiCard class="space-y-4">
+        <UiField :label="t('seo.url')">
+          <UiInput v-model="url" type="url" required />
+        </UiField>
+        <UiAlert :message="error" />
+        <p v-if="message" class="text-sm text-accent">
+          {{ message }}
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <UiButton type="submit">
+            {{ t('seo.saveUrl') }}
+          </UiButton>
+          <UiButton type="button" variant="ghost" @click="refresh">
+            {{ t('seo.refresh') }}
+          </UiButton>
+        </div>
+      </UiCard>
+      <UiCard tone="ink" class="flex min-h-48 flex-col justify-between">
+        <Icon name="solar:globus-bold-duotone" class="size-8" />
+        <p class="font-display text-2xl font-semibold tracking-tight">
+          {{ t('seo.inventory') }}
+        </p>
+      </UiCard>
     </form>
   </div>
 </template>

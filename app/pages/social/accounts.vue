@@ -50,6 +50,7 @@ function applyApps(list: SocialApp[]) {
 
 applyApps(await api<SocialApp[]>('/api/social/apps'))
 
+const linkedCount = computed(() => apps.value.filter(app => linked(app.provider)).length)
 const activeApp = computed(() => apps.value.find(app => app.provider === active.value) || null)
 const activeDraft = computed(() => (active.value ? drafts[active.value] : undefined))
 const activeAccounts = computed(() => accounts.value.filter(account => account.platform === active.value))
@@ -194,18 +195,25 @@ async function removeApp(provider: ConnectProvider) {
 <template>
   <div class="space-y-6">
     <AppBack to="/social" />
-    <div class="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 class="font-display text-5xl font-semibold tracking-tight">
-          {{ t('social.accounts') }}
-        </h1>
-        <p class="mt-3 max-w-2xl text-muted">
-          {{ t('social.appLead') }}
-        </p>
-      </div>
-      <UiButton variant="ghost" @click="syncAll">
-        {{ t('social.sync') }}
-      </UiButton>
+    <AppPageHead :title="t('social.accounts')" :lead="t('social.appLead')">
+      <template #actions>
+        <UiButton variant="ghost" @click="syncAll">
+          {{ t('social.sync') }}
+        </UiButton>
+      </template>
+    </AppPageHead>
+    <div class="grid gap-3 sm:grid-cols-3">
+      <UiCard tone="highlight">
+        <p class="text-sm opacity-80">{{ t('social.connected') }}</p>
+        <p class="mt-2 font-display text-4xl font-semibold tracking-tight">{{ linkedCount }}</p>
+      </UiCard>
+      <UiCard>
+        <p class="text-sm text-muted">{{ t('social.notConnected') }}</p>
+        <p class="mt-2 font-display text-4xl font-semibold tracking-tight">{{ Math.max(0, apps.length - linkedCount) }}</p>
+      </UiCard>
+      <UiCard tone="ink" class="flex flex-col justify-end">
+        <p class="font-display text-2xl font-semibold tracking-tight">{{ t('social.platforms') }}</p>
+      </UiCard>
     </div>
     <UiAlert v-if="!activeApp" :message="error || notice" />
     <section class="rounded-[1.75rem] border border-line bg-soft/70 p-3 sm:p-5" :aria-label="t('social.accounts')">

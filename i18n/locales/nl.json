@@ -438,6 +438,14 @@
     "rename": "Naam wijzigen",
     "actions": "Acties voor {title}"
   },
+  "shell": {
+    "posts": "Berichten",
+    "profile": "Profiel",
+    "story": "Verhaal",
+    "connections": "Koppelingen",
+    "messages": "Mails",
+    "folders": "Mappen"
+  },
   "unsubscribe": {
     "title": "Afgemeld",
     "lead": "Je ontvangt geen vervolgmails meer uit deze reeks.",

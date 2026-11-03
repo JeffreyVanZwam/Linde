@@ -8,35 +8,27 @@ const section = computed(() => props.pillar === 'growthAudit' ? 'audit' : 'found
 </script>
 
 <template>
-  <form class="mx-auto max-w-4xl space-y-6" @submit.prevent="save">
-    <div>
-      <h1 class="font-display text-5xl font-semibold tracking-tight">
-        {{ t(`${section}.title`) }}
-      </h1>
-      <p class="mt-3 max-w-2xl text-muted">
-        {{ t(`${section}.lead`) }}
-      </p>
-      <div v-if="canRerun" class="mt-4 flex flex-wrap items-center gap-3">
-        <UiButton type="button" variant="ghost" :disabled="extracting" @click="confirmOpen = true">
+  <form class="space-y-5" @submit.prevent="save">
+    <AppPageHead :title="t(`${section}.title`)" :lead="t(`${section}.lead`)">
+      <template #actions>
+        <UiButton v-if="canRerun" type="button" variant="ghost" :disabled="extracting" @click="confirmOpen = true">
           {{ extracting ? t('common.loading') : t('brain.rerun') }}
         </UiButton>
-        <p v-if="extracting" class="text-sm text-muted">
-          {{ t('onboarding.extracting') }}
-        </p>
-      </div>
-    </div>
+        <UiButton v-if="dossier" type="submit">
+          {{ t('common.save') }}
+        </UiButton>
+      </template>
+    </AppPageHead>
+    <p v-if="extracting" class="text-sm text-muted">
+      {{ t('onboarding.extracting') }}
+    </p>
     <DossierEditor v-if="dossier" v-model="dossier" :pillar="pillar" />
-    <p v-else class="text-muted">
+    <p v-else class="rounded-[1.6rem] border border-dashed border-line bg-surface px-5 py-12 text-muted">
       {{ t(`${section}.empty`) }}
     </p>
-    <div v-if="dossier" class="flex flex-wrap items-center gap-3">
-      <UiButton type="submit">
-        {{ t('common.save') }}
-      </UiButton>
-      <p v-if="message" class="text-sm text-accent">
-        {{ message }}
-      </p>
-    </div>
+    <p v-if="message" class="text-sm text-accent">
+      {{ message }}
+    </p>
     <UiAlert :message="error" />
     <UiConfirmModal
       v-if="confirmOpen"

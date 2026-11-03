@@ -116,77 +116,79 @@ async function retry() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-3xl space-y-5">
+  <div class="space-y-5">
     <AppBack to="/social" />
-    <form class="space-y-5" @submit.prevent="save('draft')">
-    <h1 class="font-display font-semibold tracking-tight text-5xl">
-      {{ t('social.compose') }}
-    </h1>
-    <p class="text-sm text-muted">
-      {{ t('social.videoHint') }}
-    </p>
-    <UiField :label="t('social.body')">
-      <UiTextarea v-model="body" />
-    </UiField>
-    <div class="space-y-3">
-      <p class="text-sm font-medium">
-        {{ t('social.platforms') }}
-      </p>
-      <label v-for="account in accounts" :key="account.id" class="block rounded-3xl border border-line bg-surface p-4">
-        <span class="flex items-center gap-2 text-sm">
-          <input v-model="selected" type="checkbox" :value="account.id">
-          {{ accountLabel(account) }}
-        </span>
-        <UiInput
-          v-if="account.platform === 'youtube' || account.platform === 'tiktok'"
-          :model-value="titles[account.id] || ''"
-          class="mt-3"
-          :placeholder="t('social.titleField')"
-          @update:model-value="titles[account.id] = $event"
-        />
-        <UiTextarea
-          :model-value="bodies[account.id] || ''"
-          class="mt-3"
-          :rows="3"
-          @update:model-value="bodies[account.id] = $event"
-        />
-        <p v-if="targetWarnings[account.id]" class="mt-2 rounded-2xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          {{ t('social.duplicate') }}: {{ targetWarnings[account.id] }}
-          <span v-if="blocked.includes(account.id)"> {{ t('social.notScheduled') }}</span>
-        </p>
-      </label>
-    </div>
-    <UiField :label="t('social.generate')">
-      <div class="flex gap-2">
-        <UiInput v-model="prompt" />
-        <UiButton type="button" variant="ghost" :disabled="busy" @click="generate">
-          {{ t('social.generate') }}
-        </UiButton>
+    <AppPageHead :title="t('social.compose')" :lead="t('social.videoHint')" />
+    <form id="compose" class="grid items-start gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]" @submit.prevent="save('draft')">
+      <div class="space-y-4">
+        <UiCard>
+          <UiField :label="t('social.body')">
+            <UiTextarea v-model="body" />
+          </UiField>
+        </UiCard>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label v-for="account in accounts" :key="account.id" class="block rounded-[1.4rem] border border-line bg-surface p-4">
+            <span class="flex items-center gap-2 text-sm font-medium">
+              <input v-model="selected" type="checkbox" :value="account.id">
+              {{ accountLabel(account) }}
+            </span>
+            <UiInput
+              v-if="account.platform === 'youtube' || account.platform === 'tiktok'"
+              :model-value="titles[account.id] || ''"
+              class="mt-3"
+              :placeholder="t('social.titleField')"
+              @update:model-value="titles[account.id] = $event"
+            />
+            <UiTextarea
+              :model-value="bodies[account.id] || ''"
+              class="mt-3"
+              :rows="3"
+              @update:model-value="bodies[account.id] = $event"
+            />
+            <p v-if="targetWarnings[account.id]" class="mt-2 rounded-2xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              {{ t('social.duplicate') }}: {{ targetWarnings[account.id] }}
+              <span v-if="blocked.includes(account.id)"> {{ t('social.notScheduled') }}</span>
+            </p>
+          </label>
+        </div>
       </div>
-    </UiField>
-    <UiField :label="t('social.upload')">
-      <input type="file" accept="image/*,video/*" @change="upload">
-    </UiField>
-    <img v-if="mediaId" :src="`/api/media/${mediaId}`" alt="" class="max-h-80 rounded-3xl object-cover">
-    <UiButton v-if="mediaId" type="button" variant="ghost" @click="editing = !editing">
-      {{ t('social.edit') }}
-    </UiButton>
-    <ImageEditor v-if="editing && mediaId" :src="`/api/media/${mediaId}`" @saved="mediaId = $event; editing = false" />
-    <UiField :label="t('social.schedule')">
-      <UiInput v-model="scheduledAt" type="datetime-local" />
-    </UiField>
-    <UiAlert :message="error" />
-    <div class="flex flex-wrap gap-2">
-      <UiButton type="submit" :disabled="busy">
-        {{ t('social.saveDraft') }}
-      </UiButton>
-      <UiButton type="button" variant="ghost" :disabled="busy" @click="save('scheduled')">
-        {{ t('social.schedule') }}
-      </UiButton>
-      <UiButton v-if="existing" type="button" variant="ghost" @click="retry">
-        {{ t('social.retry') }}
-      </UiButton>
-    </div>
+      <div class="space-y-4 lg:sticky lg:top-0">
+        <UiCard>
+          <UiField :label="t('social.generate')">
+            <div class="flex gap-2">
+              <UiInput v-model="prompt" />
+              <UiButton type="button" variant="ghost" :disabled="busy" @click="generate">
+                {{ t('social.generate') }}
+              </UiButton>
+            </div>
+          </UiField>
+          <UiField class="mt-4" :label="t('social.upload')">
+            <input type="file" accept="image/*,video/*" @change="upload">
+          </UiField>
+          <img v-if="mediaId" :src="`/api/media/${mediaId}`" alt="" class="mt-4 max-h-64 w-full rounded-2xl object-cover">
+          <UiButton v-if="mediaId" class="mt-3" type="button" variant="ghost" @click="editing = !editing">
+            {{ t('social.edit') }}
+          </UiButton>
+          <ImageEditor v-if="editing && mediaId" class="mt-3" :src="`/api/media/${mediaId}`" @saved="mediaId = $event; editing = false" />
+        </UiCard>
+        <UiCard tone="soft">
+          <UiField :label="t('social.schedule')">
+            <UiInput v-model="scheduledAt" type="datetime-local" />
+          </UiField>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <UiButton type="submit" :disabled="busy">
+              {{ t('social.saveDraft') }}
+            </UiButton>
+            <UiButton type="button" variant="ghost" :disabled="busy" @click="save('scheduled')">
+              {{ t('social.schedule') }}
+            </UiButton>
+            <UiButton v-if="existing" type="button" variant="ghost" @click="retry">
+              {{ t('social.retry') }}
+            </UiButton>
+          </div>
+        </UiCard>
+        <UiAlert :message="error" />
+      </div>
     </form>
   </div>
 </template>

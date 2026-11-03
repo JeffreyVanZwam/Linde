@@ -75,29 +75,36 @@ async function test() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl space-y-4">
+  <div class="space-y-5">
     <AppBack to="/outreach" />
+    <AppPageHead :title="t('outreach.settings')" :lead="t('outreach.lead')" />
     <form class="space-y-4" @submit.prevent="save">
-      <h1 class="font-display font-semibold tracking-tight text-5xl">
-        {{ t('outreach.smtp') }}
-      </h1>
-      <UiField :label="t('outreach.host')"><UiInput v-model="form.host" required /></UiField>
-      <UiField :label="t('outreach.port')"><UiInput v-model="form.port" type="number" required /></UiField>
-      <label class="flex items-center gap-2 text-sm">
-        <input v-model="form.secure" type="checkbox"> {{ t('outreach.secure') }}
-      </label>
-      <UiField :label="t('outreach.username')"><UiInput v-model="form.username" required /></UiField>
-      <UiField :label="t('outreach.password')"><UiInput v-model="form.password" type="password" /></UiField>
-      <UiField :label="t('outreach.fromEmail')"><UiInput v-model="form.fromEmail" type="email" required /></UiField>
-      <UiField :label="t('outreach.fromName')"><UiInput v-model="form.fromName" /></UiField>
-      <h2 class="pt-4 font-display font-semibold tracking-tight text-2xl">
-        {{ t('outreach.imap') }}
-      </h2>
-      <UiField :label="t('outreach.host')"><UiInput v-model="form.imapHost" /></UiField>
-      <UiField :label="t('outreach.port')"><UiInput v-model="form.imapPort" type="number" /></UiField>
-      <label class="flex items-center gap-2 text-sm">
-        <input v-model="form.imapSecure" type="checkbox"> {{ t('outreach.secure') }}
-      </label>
+      <div class="grid items-start gap-4 lg:grid-cols-2">
+        <UiCard class="grid gap-3 sm:grid-cols-2">
+          <h2 class="font-display text-2xl font-semibold tracking-tight sm:col-span-2">
+            {{ t('outreach.smtp') }}
+          </h2>
+          <UiField :label="t('outreach.host')"><UiInput v-model="form.host" required /></UiField>
+          <UiField :label="t('outreach.port')"><UiInput v-model="form.port" type="number" required /></UiField>
+          <UiField :label="t('outreach.username')"><UiInput v-model="form.username" required /></UiField>
+          <UiField :label="t('outreach.password')"><UiInput v-model="form.password" type="password" /></UiField>
+          <UiField :label="t('outreach.fromEmail')"><UiInput v-model="form.fromEmail" type="email" required /></UiField>
+          <UiField :label="t('outreach.fromName')"><UiInput v-model="form.fromName" /></UiField>
+          <label class="flex items-center gap-2 text-sm sm:col-span-2">
+            <input v-model="form.secure" type="checkbox"> {{ t('outreach.secure') }}
+          </label>
+        </UiCard>
+        <UiCard tone="soft" class="grid gap-3 sm:grid-cols-2">
+          <h2 class="font-display text-2xl font-semibold tracking-tight sm:col-span-2">
+            {{ t('outreach.imap') }}
+          </h2>
+          <UiField class="sm:col-span-2" :label="t('outreach.host')"><UiInput v-model="form.imapHost" /></UiField>
+          <UiField :label="t('outreach.port')"><UiInput v-model="form.imapPort" type="number" /></UiField>
+          <label class="flex items-center gap-2 text-sm">
+            <input v-model="form.imapSecure" type="checkbox"> {{ t('outreach.secure') }}
+          </label>
+        </UiCard>
+      </div>
       <UiAlert :message="error" />
       <p v-if="message" class="text-sm text-accent">
         {{ message }}

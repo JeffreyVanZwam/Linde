@@ -5,6 +5,7 @@ const props = defineProps<{
   module?: ChatModule
   limit?: number
   plain?: boolean
+  tiles?: boolean
   empty?: string
 }>()
 
@@ -55,13 +56,17 @@ async function remove(chat: ChatSummary) {
       {{ empty || t('chat.empty') }}
     </p>
     <UiAlert :class="error ? 'mb-3' : undefined" :message="error" />
-    <div :class="plain ? 'divide-y divide-line' : 'grid gap-3'">
+    <div :class="plain ? 'divide-y divide-line' : tiles ? 'grid gap-3 sm:grid-cols-2 xl:grid-cols-3' : 'grid gap-3'">
       <div
         v-for="chat in visible"
         :key="chat.id"
-        :class="plain ? 'flex items-center gap-3 py-3' : 'flex items-center gap-3 rounded-[1.25rem] border border-line bg-surface px-5 py-3 transition duration-200 hover:-translate-y-0.5'"
+        :class="plain
+          ? 'flex items-center gap-3 py-3'
+          : tiles
+            ? 'flex min-h-40 flex-col justify-between rounded-[1.4rem] border border-line bg-surface p-4 shadow-[0_18px_40px_-32px_rgba(0,0,0,0.45)] transition duration-200 hover:-translate-y-0.5'
+            : 'flex items-center gap-3 rounded-[1.25rem] border border-line bg-surface px-5 py-3 transition duration-200 hover:-translate-y-0.5'"
       >
-        <NuxtLink :to="path(chat)" class="min-w-0 flex-1 text-sm">
+        <NuxtLink :to="path(chat)" class="min-w-0 flex-1" :class="tiles ? 'font-display text-lg font-semibold tracking-tight' : 'text-sm'">
           {{ chat.title }}
         </NuxtLink>
         <UiButton

@@ -61,6 +61,12 @@ const items = computed(() => published.value
   .filter(target => !selected.value.length || (isConnectProvider(target.platform) && selected.value.includes(target.platform)))
   .sort((left, right) => (right.publishedAt || '').localeCompare(left.publishedAt || '')))
 
+const tally = computed(() => ({
+  strong: items.value.filter(item => item.performance === 'strong').length,
+  average: items.value.filter(item => item.performance === 'average').length,
+  weak: items.value.filter(item => item.performance === 'weak').length,
+}))
+
 function pick(item: ConnectProvider) {
   selected.value = selected.value.includes(item)
     ? selected.value.filter(value => value !== item)
@@ -83,15 +89,26 @@ function metrics(target: Target) {
 <template>
   <div class="space-y-6">
     <AppBack to="/social" />
-    <div>
-      <h1 class="font-display text-5xl font-semibold tracking-tight">
-        {{ t('social.published') }}
-      </h1>
-      <p class="mt-3 max-w-2xl text-muted">
-        {{ t('social.publishedLead') }}
-      </p>
+    <AppPageHead :title="t('social.published')" :lead="t('social.publishedLead')" />
+    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <UiCard>
+        <p class="text-sm text-muted">{{ t('social.published') }}</p>
+        <p class="mt-2 font-display text-4xl font-semibold tracking-tight">{{ items.length }}</p>
+      </UiCard>
+      <UiCard tone="highlight">
+        <p class="text-sm opacity-80">{{ t('social.performanceStrong') }}</p>
+        <p class="mt-2 font-display text-4xl font-semibold tracking-tight">{{ tally.strong }}</p>
+      </UiCard>
+      <UiCard>
+        <p class="text-sm text-muted">{{ t('social.performanceAverage') }}</p>
+        <p class="mt-2 font-display text-4xl font-semibold tracking-tight">{{ tally.average }}</p>
+      </UiCard>
+      <UiCard tone="soft">
+        <p class="text-sm text-muted">{{ t('social.performanceWeak') }}</p>
+        <p class="mt-2 font-display text-4xl font-semibold tracking-tight">{{ tally.weak }}</p>
+      </UiCard>
     </div>
-    <div class="flex flex-wrap gap-3" role="group" :aria-label="t('social.platforms')">
+    <div class="flex flex-wrap gap-2 rounded-[1.4rem] border border-line bg-surface p-3" role="group" :aria-label="t('social.platforms')">
       <button v-for="item in connectProviders" :key="item" type="button"
         class="inline-flex items-center gap-2 rounded-full px-2 py-1 text-sm font-medium transition duration-200 hover:bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         :class="selected.length && !selected.includes(item) ? 'opacity-40' : ''" :aria-pressed="selected.includes(item)"
