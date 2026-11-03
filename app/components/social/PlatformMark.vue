@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ConnectProvider } from '~~/shared/platforms'
+import { platformIcons, type ConnectProvider } from '~~/shared/platforms'
 
 const props = withDefaults(defineProps<{
   provider: ConnectProvider
@@ -11,13 +11,7 @@ const props = withDefaults(defineProps<{
 const box = { xs: 'size-6', sm: 'size-10', md: 'size-12' }
 const icon = { xs: '!size-6', sm: '!size-10', md: '!size-12' }
 
-const icons: Record<ConnectProvider, string> = {
-  linkedin: 'selfhst:linkedin',
-  facebook: 'selfhst:facebook',
-  instagram: 'selfhst:instagram',
-  youtube: 'selfhst:youtube',
-  tiktok: 'selfhst:tiktok',
-}
+const icons = platformIcons
 </script>
 
 <template>

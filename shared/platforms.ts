@@ -26,6 +26,14 @@ export const platformLabels: Record<SocialPlatform, string> = {
   tiktok: 'TikTok',
 }
 
+export const platformIcons: Record<SocialPlatform, string> = {
+  linkedin: 'selfhst:linkedin',
+  facebook: 'selfhst:facebook',
+  instagram: 'selfhst:instagram',
+  youtube: 'selfhst:youtube',
+  tiktok: 'selfhst:tiktok',
+}
+
 export function platformLabel(platform: string) {
   return isSocialPlatform(platform) ? platformLabels[platform] : platform
 }

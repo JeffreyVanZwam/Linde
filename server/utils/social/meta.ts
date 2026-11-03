@@ -374,7 +374,92 @@ export async function metaPublish(account: ConnectedAccount, input: PublishInput
 }
 
 async function graphByIds(host: string, token: string, ids: string[], fields: string) {
-  return jsonRequest(`${host}/?ids=${ids.map(encodeURIComponent).join(',')}&fields=${encodeURIComponent(fields)}`, { token })
+  if (!ids.length) return {}
+  const batched = await graphBatch(host, token, ids, fields)
+  if (batched) return batched
+  return graphEach(host, token, ids, fields)
+}
+
+async function graphBatch(host: string, token: string, ids: string[], fields: string) {
+  const batch = ids.map(id => ({
+    method: 'GET',
+    relative_url: `${id}?fields=${encodeURIComponent(fields)}`,
+  }))
+  const response = await fetch(host, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${token}`,
+      'content-type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({ batch: JSON.stringify(batch) }),
+  })
+  const text = await response.text()
+  let data: unknown = null
+  try {
+    data = text ? JSON.parse(text) as unknown : null
+  }
+  catch {
+    return null
+  }
+  if (!response.ok || !Array.isArray(data)) return null
+  return nodesFromBatch(ids, data)
+}
+
+async function graphEach(host: string, token: string, ids: string[], fields: string) {
+  const failures: string[] = []
+  const entries = await Promise.all(ids.map(async (id) => {
+    try {
+      return [id, await jsonRequest(`${host}/${id}?fields=${encodeURIComponent(fields)}`, { token })] as const
+    }
+    catch (error) {
+      const message = error instanceof Error ? error.message : 'Meta-verzoek mislukte'
+      failures.push(message)
+      return [id, { error: message }] as const
+    }
+  }))
+  if (failures.length === ids.length) throw new Error(failures[0])
+  return Object.fromEntries(entries)
+}
+
+function nodesFromBatch(ids: string[], rows: unknown[]) {
+  const nodes: Record<string, unknown> = {}
+  const failures: string[] = []
+  let failed = 0
+  rows.forEach((item, index) => {
+    const id = ids[index]
+    if (!id || !item || typeof item !== 'object') return
+    const row = item as { code?: unknown, body?: unknown }
+    const body = parseGraphBody(row.body)
+    const code = typeof row.code === 'number' ? row.code : 0
+    const message = graphErrorMessage(body)
+    if (code >= 400 || message) {
+      failed += 1
+      if (message) failures.push(message)
+      nodes[id] = { error: body.error || message || true }
+      return
+    }
+    nodes[id] = body
+  })
+  if (failed === ids.length) throw new Error(failures[0] || 'Meta-verzoek mislukte')
+  return nodes
+}
+
+function parseGraphBody(body: unknown) {
+  if (typeof body !== 'string' || !body) return {}
+  try {
+    const parsed = JSON.parse(body) as unknown
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {}
+  }
+  catch {
+    return {}
+  }
+}
+
+function graphErrorMessage(data: Record<string, unknown>) {
+  const error = data.error
+  if (typeof error === 'string') return error
+  if (error && typeof error === 'object' && 'message' in error) return String((error as { message: unknown }).message)
+  return ''
 }
 
 async function insightNodes(host: string, token: string, ids: string[], instagram: boolean, warnings: string[]) {

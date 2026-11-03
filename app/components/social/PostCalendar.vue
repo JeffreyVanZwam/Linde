@@ -43,9 +43,11 @@ const localePath = useLocalePath()
 const hourHeight = 64
 const hatch = 'repeating-linear-gradient(-45deg, transparent, transparent 6px, color-mix(in srgb, var(--ink) 9%, transparent) 6px, color-mix(in srgb, var(--ink) 9%, transparent) 7px)'
 const storageKey = 'linde.calendar.hiddenAccounts'
+const modeKey = 'linde.calendar.mode'
 const modes = ['day', 'week', 'month'] as const
 
 const mode = ref<(typeof modes)[number]>('week')
+const modeReady = ref(false)
 const cursor = ref(new Date())
 const now = ref(new Date())
 const channelsOpen = ref(true)
@@ -116,9 +118,22 @@ watch(hiddenIds, (value) => {
   }
 })
 
-watch(mode, () => nextTick(scrollToNow))
+watch(mode, (value) => {
+  if (modeReady.value) {
+    try {
+      localStorage.setItem(modeKey, value)
+    }
+    catch {
+      // De keuze blijft gelden tot de pagina opnieuw laadt.
+    }
+  }
+  nextTick(scrollToNow)
+})
 
 onMounted(() => {
+  const stored = readMode()
+  if (stored) mode.value = stored
+  modeReady.value = true
   hiddenIds.value = readHidden()
   hiddenReady.value = true
   timer = setInterval(() => {
@@ -130,6 +145,17 @@ onMounted(() => {
 onUnmounted(() => {
   if (timer) clearInterval(timer)
 })
+
+function readMode() {
+  try {
+    const raw = localStorage.getItem(modeKey)
+    if (raw === 'day' || raw === 'week' || raw === 'month') return raw
+  }
+  catch {
+    // Ongeldige of geblokkeerde opslag: de standaardweergave blijft staan.
+  }
+  return null
+}
 
 function readHidden() {
   try {

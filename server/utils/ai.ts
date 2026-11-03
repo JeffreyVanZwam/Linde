@@ -1,6 +1,7 @@
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogle } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
+import { APICallError } from 'ai'
 
 const textProviders = ['free', 'openai', 'anthropic', 'gemini'] as const
 type TextProvider = typeof textProviders[number]
@@ -30,6 +31,16 @@ export function aiConfig() {
     geminiApiKey: config.geminiApiKey,
     openaiImageModel: config.openaiImageModel,
   }
+}
+
+export function languageModelProblem(error: unknown) {
+  if (!APICallError.isInstance(error)) return null
+  const provider = aiConfig().provider
+  const name = provider === 'gemini' ? 'Gemini' : provider === 'openai' ? 'OpenAI' : provider === 'anthropic' ? 'Anthropic' : 'Het gratis model'
+  if (error.statusCode === 402) return `${name} heeft geen tegoed meer. Vul het tegoed aan of kies een ander model in .env.`
+  if (error.statusCode === 429) return `${name} heeft het verzoeklimiet bereikt. Wacht even of kies een ander model in .env.`
+  if (error.statusCode === 401 || error.statusCode === 403) return `De sleutel voor ${name} is geweigerd. Controleer .env.`
+  return null
 }
 
 export function hasLanguageModel() {

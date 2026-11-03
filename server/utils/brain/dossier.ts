@@ -1,7 +1,7 @@
 import { generateObject } from 'ai'
 import { z } from 'zod'
 import { coerceDossier, emptyDossier, type BrandDossier } from '~~/shared/dossier'
-import { aiConfig, getLanguageModel, hasLanguageModel } from '../ai'
+import { aiConfig, getLanguageModel, hasLanguageModel, languageModelProblem } from '../ai'
 
 function finding(detail = 'Three to five sentences: what is on the page, why this score, and the specific gap. Name the headline or section you judged.') {
   return z.object({
@@ -155,7 +155,9 @@ async function ask<T>(schema: z.ZodType<T>, prompt: string): Promise<T | undefin
       }
       return object
     }
-    catch {
+    catch (error) {
+      const problem = languageModelProblem(error)
+      if (problem) throw createError({ statusCode: 502, statusMessage: problem })
       extra = 'Return the full object. Fill every field with a complete answer. Do not leave strings empty.'
     }
   }
