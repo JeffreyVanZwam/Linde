@@ -89,7 +89,7 @@ async function logout() {
       </span>
     </NuxtLink>
     <div class="mt-8 flex min-h-0 flex-1 flex-col overflow-hidden">
-      <nav class="theme-scroll flex min-h-0 shrink flex-col gap-6 overflow-y-auto">
+      <nav class="theme-scroll flex min-h-0 shrink flex-col gap-6 overflow-x-hidden overflow-y-auto">
         <div v-for="group in groups" :key="group.label">
           <p class="px-3 text-xs font-medium text-sidebar-muted">
             {{ group.label }}
