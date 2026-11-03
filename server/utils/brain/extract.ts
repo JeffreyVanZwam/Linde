@@ -26,7 +26,7 @@ export type ExtractedBrand = z.infer<typeof brandSchema> & {
 const genericFonts = new Set(['inherit', 'initial', 'unset', 'serif', 'sans-serif', 'monospace', 'system-ui', 'ui-sans-serif', 'ui-serif', 'emoji', 'cursive', 'fantasy'])
 
 export async function extractBrand(userId: string, websiteUrl: string, locale: 'nl' | 'en'): Promise<ExtractedBrand> {
-  const page = await readPage(websiteUrl)
+  const page = await readSite(websiteUrl)
   const imageIds: string[] = []
   let logoMediaId: string | null = null
 
@@ -84,17 +84,17 @@ async function narrate(page: Awaited<ReturnType<typeof readPage>>, locale: 'nl' 
       model: getLanguageModel(),
       maxRetries: ai.tier === 'free' ? 0 : 2,
       schema: brandSchema,
-      abortSignal: AbortSignal.timeout(25_000),
+      abortSignal: AbortSignal.timeout(40_000),
       prompt: [
         locale === 'en'
-          ? 'Extract a brand profile from this website. Write in English. Keep the tone description concrete and usable by a copywriter.'
-          : 'Extraheer een merkprofiel uit deze website. Schrijf in het Nederlands. De tone-of-voice moet concreet genoeg zijn voor een copywriter.',
+          ? 'Extract a brand profile from these pages. Write in English. whoTheyAre, whatTheyDo, audience, and toneOfVoice are each a short paragraph a copywriter can use, not a single clause.'
+          : 'Extraheer een merkprofiel uit deze pagina\'s. Schrijf in het Nederlands. whoTheyAre, whatTheyDo, audience en toneOfVoice zijn elk een korte alinea die een copywriter kan gebruiken, geen losse zin.',
         `URL: ${page.finalUrl}`,
         `Titel: ${page.title}`,
         `Beschrijving: ${page.description}`,
         `Kleuren: ${page.colors.join(', ')}`,
         `Fonts: ${page.fonts.join(', ')}`,
-        `Tekst:\n${page.text.slice(0, 8000)}`,
+        `Tekst:\n${page.text.slice(0, 16_000)}`,
       ].join('\n\n'),
     })
     return {
@@ -108,12 +108,31 @@ async function narrate(page: Awaited<ReturnType<typeof readPage>>, locale: 'nl' 
   }
 }
 
+type PageCopy = {
+  finalUrl: string
+  title: string
+  description: string
+  headings: string[]
+  navigation: string[]
+  jsonLd: string
+  text: string
+}
+
+async function readSite(rawUrl: string) {
+  const home = await readPage(rawUrl)
+  const linked = await readLinkedPages(home.links)
+  return {
+    ...home,
+    text: formatPages([home, ...linked]),
+  }
+}
+
 async function readPage(rawUrl: string) {
   const url = assertHttpUrl(rawUrl)
   const response = await fetch(url, {
     redirect: 'follow',
     signal: AbortSignal.timeout(12_000),
-    headers: { 'user-agent': 'MarketingDashboardBot/1.0' },
+    headers: { 'user-agent': 'MarketingDashboardBot/1.0', accept: 'text/html' },
   }).catch((error) => {
     throw createError({ statusCode: 400, statusMessage: error instanceof Error ? error.message : 'Website niet bereikbaar' })
   })
@@ -122,8 +141,7 @@ async function readPage(rawUrl: string) {
   }
   const html = (await response.text()).slice(0, 1_500_000)
   const $ = cheerio.load(html)
-  const title = $('meta[property="og:site_name"]').attr('content') || $('title').first().text().trim()
-  const description = $('meta[name="description"]').attr('content') || $('meta[property="og:description"]').attr('content') || ''
+  const copy = readCopy($, response.url)
   const styles: string[] = []
   $('style').each((_, element) => {
     styles.push($(element).text())
@@ -144,8 +162,6 @@ async function readPage(rawUrl: string) {
     }
   }
   const css = styles.join('\n')
-  $('script, style, noscript').remove()
-  const text = $('body').text().replace(/\s+/g, ' ').trim()
   const imageUrls = unique([
     $('meta[property="og:image"]').attr('content'),
     ...$('img').map((_, element) => $(element).attr('src')).get(),
@@ -155,15 +171,142 @@ async function readPage(rawUrl: string) {
     || $('meta[property="og:image"]').attr('content')
     || null
   return {
-    finalUrl: response.url,
-    title,
-    description: description.trim(),
-    text,
+    ...copy,
+    links: rankLinks(collectAnchors($), response.url),
     colors: topColors(css),
     fonts: topFonts(css),
     imageUrls,
     logoUrl,
   }
+}
+
+async function readLinkedPages(links: string[]) {
+  const pages: PageCopy[] = []
+  for (let index = 0; index < links.length; index += 3) {
+    const batch = await Promise.all(links.slice(index, index + 3).map(link => readContentPage(link)))
+    for (const page of batch) {
+      if (page && (page.text.trim().length >= 80 || page.headings.length > 0)) pages.push(page)
+    }
+  }
+  return pages
+}
+
+async function readContentPage(rawUrl: string): Promise<PageCopy | null> {
+  try {
+    const url = assertHttpUrl(rawUrl)
+    const response = await fetch(url, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(8_000),
+      headers: { 'user-agent': 'MarketingDashboardBot/1.0', accept: 'text/html' },
+    })
+    if (!response.ok) return null
+    const type = response.headers.get('content-type') || ''
+    if (type && !type.includes('html') && !type.includes('xml')) return null
+    if (new URL(response.url).hostname !== url.hostname) return null
+    const html = (await response.text()).slice(0, 800_000)
+    return readCopy(cheerio.load(html), response.url)
+  }
+  catch {
+    return null
+  }
+}
+
+function readCopy($: ReturnType<typeof cheerio.load>, finalUrl: string): PageCopy {
+  const title = $('meta[property="og:site_name"]').attr('content')
+    || $('title').first().text().replace(/\s+/g, ' ').trim()
+    || $('h1').first().text().replace(/\s+/g, ' ').trim()
+  const description = ($('meta[name="description"]').attr('content') || $('meta[property="og:description"]').attr('content') || '').replace(/\s+/g, ' ').trim()
+  const headings = unique($('h1, h2, h3').map((_, element) => $(element).text().replace(/\s+/g, ' ').trim()).get().filter(Boolean)).slice(0, 24)
+  const navigation = unique($('header a, nav a').map((_, element) => $(element).text().replace(/\s+/g, ' ').trim()).get().filter(item => item.length > 1 && item.length < 80)).slice(0, 24)
+  const jsonLd = collectJsonLd($)
+  const text = visibleText($)
+  return { finalUrl, title, description, headings, navigation, jsonLd, text }
+}
+
+function visibleText($: ReturnType<typeof cheerio.load>) {
+  const main = $('main, [role="main"], article').first()
+  const root = main.length ? main : $('body')
+  const blocks = root.find('h1, h2, h3, p, li, blockquote').map((_, element) => $(element).text().replace(/\s+/g, ' ').trim()).get().filter(item => item.length > 1)
+  const structured = unique(blocks).join('\n')
+  if (structured.length >= 200) return structured.slice(0, 6_000)
+  const clone = root.clone()
+  clone.find('script, style, noscript, svg').remove()
+  clone.find('h1, h2, h3, h4, p, li, div, section, article, td, th, br').append('\n')
+  return clone.text().replace(/[^\S\n]+/g, ' ').replace(/\n{2,}/g, '\n').trim().slice(0, 6_000)
+}
+
+function collectJsonLd($: ReturnType<typeof cheerio.load>) {
+  const chunks: string[] = []
+  $('script[type="application/ld+json"]').each((_, element) => {
+    const raw = $(element).text().trim()
+    if (!raw) return
+    try {
+      chunks.push(JSON.stringify(JSON.parse(raw)).slice(0, 2_000))
+    }
+    catch {
+      chunks.push(raw.slice(0, 500))
+    }
+  })
+  return chunks.join('\n').slice(0, 4_000)
+}
+
+function collectAnchors($: ReturnType<typeof cheerio.load>) {
+  return $('a[href]').map((_, element) => ({
+    href: $(element).attr('href') || '',
+    label: $(element).text().replace(/\s+/g, ' ').trim(),
+  })).get()
+}
+
+function rankLinks(links: Array<{ href: string, label: string }>, base: string) {
+  let origin: URL
+  try {
+    origin = new URL(base)
+  }
+  catch {
+    return []
+  }
+  const scored = new Map<string, number>()
+  const homePath = origin.pathname.replace(/\/+$/, '') || '/'
+  for (const link of links) {
+    let url: URL
+    try {
+      url = new URL(link.href, origin)
+    }
+    catch {
+      continue
+    }
+    if (url.hostname !== origin.hostname || !['http:', 'https:'].includes(url.protocol)) continue
+    url.hash = ''
+    url.search = ''
+    if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, '')
+    const path = url.pathname || '/'
+    if (path === homePath || path === '/') continue
+    if (/\.(pdf|zip|png|jpe?g|gif|webp|svg|mp4|mp3|css|js)$/i.test(path)) continue
+    const haystack = `${path} ${link.label}`
+    if (/privacy|cookie|terms|voorwaarden|disclaimer|login|signin|signup|sign-up|account|cart|checkout|wp-admin|wp-json|xmlrpc|\/feed|\/tag\/|\/author\/|\/search/i.test(haystack)) continue
+    const depth = path.split('/').filter(Boolean).length
+    let score = depth === 1 ? 4 : depth === 2 ? 2 : 0
+    if (/about|over-ons|over|bedrijf|company|team|pricing|prijzen|prijs|tarief|product|platform|feature|functie|oploss|solution|dienst|service|klant|customer|case|werkwijze|how-it-works|waarom|why|aanbod|pakket|integrat/i.test(haystack)) score += 8
+    const previous = scored.get(url.href) ?? -1
+    if (score > previous) scored.set(url.href, score)
+  }
+  return [...scored.entries()].sort((left, right) => right[1] - left[1]).slice(0, 5).map(([href]) => href)
+}
+
+function formatPages(pages: PageCopy[]) {
+  const budget = Math.max(3_500, Math.floor(28_000 / Math.max(pages.length, 1)))
+  return pages.map((page) => {
+    const parts = [
+      `URL: ${page.finalUrl}`,
+      page.title ? `Titel: ${page.title}` : '',
+      page.description ? `Beschrijving: ${page.description}` : '',
+      page.navigation.length ? `Navigatie: ${page.navigation.join(' · ')}` : '',
+      page.headings.length ? `Koppen:\n${page.headings.map(item => `- ${item}`).join('\n')}` : '',
+      page.jsonLd ? `Gestructureerde data:\n${page.jsonLd}` : '',
+      page.text ? `Tekst:\n${page.text}` : '',
+    ].filter(Boolean).join('\n')
+    return parts.slice(0, budget)
+  }).join('\n\n---\n\n')
 }
 
 async function downloadAsset(userId: string, assetUrl: string, baseUrl: string, source: string) {
