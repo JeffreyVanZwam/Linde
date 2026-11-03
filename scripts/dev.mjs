@@ -13,6 +13,16 @@ import {
 loadEnv()
 pocketbaseDefaults()
 
+const root = resolve(import.meta.dirname, '..')
+let tls
+try {
+  tls = ensureLocalCertificate(root)
+}
+catch (error) {
+  console.error(error instanceof Error ? error.message : error)
+  process.exit(1)
+}
+
 const mode = process.argv[2] === 'preview' ? 'preview' : 'dev'
 const binary = await ensureBinary()
 upsertSuperuser(binary)
@@ -41,12 +51,10 @@ catch (error) {
   stop(1)
 }
 
-const root = resolve(import.meta.dirname, '..')
 const publicPort = 3000
 const internalPort = 3010
 let endpoints
 try {
-  const tls = ensureLocalCertificate(root)
   endpoints = await startDualServer({ publicPort, internalPort, pocketbasePort: 8090, tls })
 }
 catch (error) {
