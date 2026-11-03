@@ -80,9 +80,7 @@ async function logout() {
       : 'max-lg:hidden'"
   >
     <NuxtLink :to="localePath('/')" class="flex shrink-0 items-center gap-3 px-1" @click="open = false">
-      <span class="flex size-11 items-center justify-center rounded-full ring-1 ring-white/30">
-        <AppMark class="size-8 text-sidebar-ink" />
-      </span>
+      <AppMark inverted class="size-8" />
       <span>
         <span class="block font-display text-lg font-semibold tracking-tight">{{ t('app.name') }}</span>
         <span class="block text-xs text-sidebar-muted">{{ t('nav.dashboard') }}</span>

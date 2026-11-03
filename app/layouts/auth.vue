@@ -11,9 +11,7 @@ onMounted(() => {
   <div class="grid min-h-dvh bg-canvas text-ink lg:grid-cols-[minmax(0,0.9fr)_minmax(22rem,1fr)]">
     <div class="panel-ink relative hidden overflow-hidden p-10 lg:flex lg:flex-col lg:justify-between">
       <div class="flex items-center gap-3">
-        <span class="flex size-12 items-center justify-center rounded-full bg-white/15">
-          <AppMark class="size-8" />
-        </span>
+        <AppMark inverted class="size-8" />
         <p class="font-display text-2xl font-semibold tracking-tight">
           {{ $t('app.name') }}
         </p>
@@ -43,9 +41,7 @@ onMounted(() => {
         :transition="{ duration: reduceMotion ? 0 : 0.4, ease: [0.22, 1, 0.36, 1] }"
       >
         <div class="mb-6 flex items-center gap-3 lg:hidden">
-          <span class="flex size-12 items-center justify-center rounded-full bg-sidebar">
-            <AppMark class="size-8 text-sidebar-ink" />
-          </span>
+          <AppMark inverted class="size-8" />
           <p class="font-display text-3xl font-semibold tracking-tight">
             {{ $t('app.name') }}
           </p>
