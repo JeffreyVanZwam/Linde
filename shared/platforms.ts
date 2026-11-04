@@ -1,10 +1,10 @@
 export const chatModules = ['strategy', 'social', 'seo', 'outreach'] as const
 export type ChatModule = (typeof chatModules)[number]
 
-export const socialPlatforms = ['linkedin', 'facebook', 'instagram', 'youtube', 'tiktok'] as const
+export const socialPlatforms = ['linkedin', 'facebook', 'instagram', 'youtube', 'tiktok', 'x', 'pinterest'] as const
 export type SocialPlatform = (typeof socialPlatforms)[number]
 
-export const connectProviders = ['linkedin', 'facebook', 'instagram', 'youtube', 'tiktok'] as const
+export const connectProviders = ['linkedin', 'facebook', 'instagram', 'youtube', 'tiktok', 'x', 'pinterest'] as const
 export type ConnectProvider = (typeof connectProviders)[number]
 
 export const postStatuses = ['draft', 'scheduled', 'publishing', 'published', 'failed'] as const
@@ -16,6 +16,8 @@ export const platformLimits: Record<SocialPlatform, { body: number; title?: numb
   instagram: { body: 2200, requires: 'image' },
   youtube: { body: 5000, title: 100, requires: 'video' },
   tiktok: { body: 2200, title: 150, requires: 'video' },
+  x: { body: 280, requires: 'none' },
+  pinterest: { body: 500, title: 100, requires: 'image' },
 }
 
 export const platformLabels: Record<SocialPlatform, string> = {
@@ -24,6 +26,8 @@ export const platformLabels: Record<SocialPlatform, string> = {
   instagram: 'Instagram',
   youtube: 'YouTube',
   tiktok: 'TikTok',
+  x: 'X',
+  pinterest: 'Pinterest',
 }
 
 export const platformIcons: Record<SocialPlatform, string> = {
@@ -32,6 +36,8 @@ export const platformIcons: Record<SocialPlatform, string> = {
   instagram: 'selfhst:instagram',
   youtube: 'selfhst:youtube',
   tiktok: 'selfhst:tiktok',
+  x: 'selfhst:x',
+  pinterest: 'selfhst:pinterest',
 }
 
 export function platformLabel(platform: string) {

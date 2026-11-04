@@ -3,11 +3,11 @@ import { decrypt, signValue } from '../crypto'
 import { appBaseUrl } from '../http'
 import { findSmtp } from '../store'
 
-export async function sendOutreachMail(userId: string, message: { to: string, subject: string, body: string, recipientId: string }) {
+export async function sendOutreachMail(userId: string, brandId: string, message: { to: string, subject: string, body: string, recipientId: string }) {
   const footer = unsubscribeFooter(message.recipientId)
   const text = `${message.body}\n\n${footer.text}`
   const html = `<div>${escapeHtml(message.body).replaceAll('\n', '<br>')}</div><p style="color:#57534e;font-size:12px">${escapeHtml(footer.text)} <a href="${footer.url}">${footer.url}</a></p>`
-  const smtp = await findSmtp(userId)
+  const smtp = await findSmtp(userId, brandId)
   if (smtp) {
     const transporter = nodemailer.createTransport({
       host: smtp.host,

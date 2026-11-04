@@ -1,7 +1,7 @@
-import { requireUser } from '../../utils/auth'
+import { requireBrand } from '../../utils/scope'
 import { listCampaigns } from '../../utils/store'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
-  return listCampaigns(user.id)
+  const { user, brand } = await requireBrand(event)
+  return listCampaigns(user.id, brand.id)
 })

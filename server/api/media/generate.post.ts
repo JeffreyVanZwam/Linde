@@ -1,6 +1,6 @@
 import { generateImage } from 'ai'
 import { z } from 'zod'
-import { requireUser } from '../../utils/auth'
+import { requireBrand } from '../../utils/scope'
 import { getImageModel } from '../../utils/ai'
 import { parseInput } from '../../utils/http'
 import { saveMedia } from '../../utils/media'
@@ -10,7 +10,7 @@ const schema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
+  const { user, brand } = await requireBrand(event)
   const input = parseInput(schema, await readBody(event))
   const result = await generateImage({
     model: getImageModel(),
@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
   })
   const assetId = await saveMedia({
     userId: user.id,
+    brandId: brand.id,
     bytes: Buffer.from(result.image.uint8Array),
     mime: result.image.mediaType || 'image/png',
     source: 'generated',

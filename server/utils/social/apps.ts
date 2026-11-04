@@ -25,6 +25,8 @@ const envNames: Record<ConnectProvider, [string, string]> = {
   instagram: ['INSTAGRAM_APP_ID', 'INSTAGRAM_APP_SECRET'],
   youtube: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
   tiktok: ['TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET'],
+  x: ['X_CLIENT_ID', 'X_CLIENT_SECRET'],
+  pinterest: ['PINTEREST_APP_ID', 'PINTEREST_APP_SECRET'],
 }
 
 type SocialAppRow = {

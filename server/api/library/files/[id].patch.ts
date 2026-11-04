@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { requireUser } from '../../../utils/auth'
+import { requireBrand } from '../../../utils/scope'
 import { apiError, parseInput } from '../../../utils/http'
 import { findFolder, findMedia, updateLibraryFile } from '../../../utils/store'
 
@@ -9,13 +9,13 @@ const schema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
+  const { user, brand } = await requireBrand(event)
   const fileId = getRouterParam(event, 'id')
   if (!fileId) apiError(400, 'Bestand ontbreekt')
   const file = await findMedia(fileId)
-  if (!file || file.userId !== user.id) apiError(404, 'Bestand niet gevonden')
+  if (!file || file.userId !== user.id || file.brandId !== brand.id) apiError(404, 'Bestand niet gevonden')
   const input = parseInput(schema, await readBody(event))
-  if (input.folderId && !await findFolder(input.folderId, user.id)) apiError(404, 'Map niet gevonden')
+  if (input.folderId && !await findFolder(input.folderId, user.id, brand.id)) apiError(404, 'Map niet gevonden')
   await updateLibraryFile(file.id, input)
   return { ok: true }
 })

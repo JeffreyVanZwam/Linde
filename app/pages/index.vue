@@ -12,6 +12,36 @@ const [posts, campaigns] = await Promise.all([
 const scheduled = computed(() => posts.filter(post => post.status === 'scheduled'))
 const upcoming = computed(() => scheduled.value.slice(0, 4))
 const publishedCount = computed(() => posts.filter(post => post.status === 'published').length)
+const suggesting = ref(false)
+
+function dayStamp(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
+}
+
+const streak = computed(() => {
+  const days = new Set(posts.filter(post => post.status === 'published' && post.scheduledAt).map(post => post.scheduledAt!.slice(0, 10)))
+  const cursor = new Date()
+  if (!days.has(dayStamp(cursor))) cursor.setDate(cursor.getDate() - 1)
+  let count = 0
+  while (days.has(dayStamp(cursor))) {
+    count += 1
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  return count
+})
+
+async function suggest() {
+  suggesting.value = true
+  try {
+    const result = await useRequestFetch()<{ id: string }>('/api/social/suggest', { method: 'POST' })
+    await navigateTo(localePath(`/social/compose?post=${result.id}`))
+  }
+  finally {
+    suggesting.value = false
+  }
+}
 const today = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium' }).format(new Date()))
 
 const days = computed(() => {
@@ -25,7 +55,8 @@ const bars = computed(() => {
     if (!post.scheduledAt) continue
     const date = new Date(post.scheduledAt)
     if (Number.isNaN(date.getTime())) continue
-    counts[(date.getDay() + 6) % 7] += 1
+    const slot = (date.getDay() + 6) % 7
+    counts[slot] = (counts[slot] ?? 0) + 1
   }
   const max = Math.max(1, ...counts)
   const peak = Math.max(...counts)
@@ -66,6 +97,10 @@ const modules = computed(() => [
   <div class="space-y-4">
     <AppPageHead :title="me?.user.name || t('nav.home')" :eyebrow="t('home.eyebrow')" :lead="t('home.lead')">
       <template #actions>
+        <UiButton variant="ghost" :disabled="suggesting" @click="suggest">{{ t('forge.suggest') }}</UiButton>
+        <span class="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-2 text-sm text-muted">
+          {{ t('forge.streak') }}: {{ t('forge.streakDays', { count: streak }) }}
+        </span>
         <span class="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-2 text-sm text-muted">
           <Icon name="solar:calendar-linear" class="size-4" />
           {{ today }}

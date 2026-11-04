@@ -36,8 +36,44 @@ const error = ref('')
 const extracting = ref(false)
 const confirmOpen = ref(false)
 const tab = ref('profile')
+type Note = { id: string, kind: string, title: string, body: string }
+const notes = ref<Note[]>([])
+const noteKind = ref<'note' | 'voice' | 'document'>('note')
+const noteTitle = ref('')
+const noteBody = ref('')
+const noteFile = ref('')
+try {
+  notes.value = await api<Note[]>('/api/brain/notes')
+}
+catch {
+  notes.value = []
+}
+
+async function addNote() {
+  error.value = ''
+  try {
+    await api('/api/brain/notes', {
+      method: 'POST',
+      body: { kind: noteKind.value, title: noteTitle.value, body: noteBody.value, fileId: noteFile.value || undefined },
+    })
+    noteTitle.value = ''
+    noteBody.value = ''
+    noteFile.value = ''
+    notes.value = await api<Note[]>('/api/brain/notes')
+  }
+  catch (cause) {
+    error.value = errorText(cause) || t('common.error')
+  }
+}
+
+async function removeNote(id: string) {
+  await api(`/api/brain/notes/${id}`, { method: 'DELETE' })
+  notes.value = notes.value.filter(note => note.id !== id)
+}
+
 const tabs = computed(() => [
   { id: 'profile', label: t('shell.profile') },
+  { id: 'knowledge', label: t('forge.notes') },
   { id: 'story', label: t('shell.story') },
   { id: 'dossier', label: t('brain.dossier') },
 ])
@@ -218,6 +254,30 @@ async function save() {
           </UiField>
         </UiCard>
       </div>
+    </div>
+
+    <div v-else-if="tab === 'knowledge'" class="space-y-4">
+      <UiCard>
+        <div class="flex flex-wrap gap-2">
+          <button v-for="kind in ['note', 'voice', 'document']" :key="kind" type="button" class="rounded-full px-3 py-1 text-sm" :class="noteKind === kind ? 'bg-cta text-cta-ink' : 'bg-soft'" @click="noteKind = kind as 'note' | 'voice' | 'document'">
+            {{ t(`forge.${kind}`) }}
+          </button>
+        </div>
+        <UiInput v-model="noteTitle" class="mt-3" :placeholder="t('forge.notes')" />
+        <UiTextarea v-model="noteBody" class="mt-3" :rows="5" />
+        <UiInput v-model="noteFile" class="mt-3" :placeholder="t('forge.file')" />
+        <UiButton class="mt-3" type="button" @click="addNote">{{ t('forge.add') }}</UiButton>
+      </UiCard>
+      <UiCard v-for="note in notes" :key="note.id">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-xs uppercase tracking-wide text-muted">{{ note.kind }}</p>
+            <p class="font-medium">{{ note.title }}</p>
+            <p class="mt-2 line-clamp-4 text-sm text-muted">{{ note.body }}</p>
+          </div>
+          <button type="button" class="text-sm text-muted" @click="removeNote(note.id)">{{ t('chat.delete') }}</button>
+        </div>
+      </UiCard>
     </div>
 
     <div v-else class="grid gap-3 md:grid-cols-2">

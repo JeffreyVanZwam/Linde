@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { requireUser } from '../../utils/auth'
+import { requireBrand } from '../../utils/scope'
 import { encrypt } from '../../utils/crypto'
 import { parseInput } from '../../utils/http'
 import { findSmtp, saveSmtp } from '../../utils/store'
@@ -18,13 +18,13 @@ const schema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
+  const { user, brand } = await requireBrand(event)
   const input = parseInput(schema, await readBody(event))
-  const existing = await findSmtp(user.id)
+  const existing = await findSmtp(user.id, brand.id)
   if (!existing && !input.password) {
     throw createError({ statusCode: 400, statusMessage: 'Wachtwoord is verplicht' })
   }
-  await saveSmtp(user.id, existing, {
+  await saveSmtp(user.id, brand.id, existing, {
     host: input.host,
     port: input.port,
     secure: input.secure,

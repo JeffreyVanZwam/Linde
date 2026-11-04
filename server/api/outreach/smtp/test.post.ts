@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { requireUser } from '../../../utils/auth'
+import { requireBrand } from '../../../utils/scope'
 import { decrypt } from '../../../utils/crypto'
 import { apiError, parseInput } from '../../../utils/http'
 import { verifyImap, verifySmtp } from '../../../utils/mail/verify'
@@ -17,9 +17,9 @@ const schema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
+  const { user, brand } = await requireBrand(event)
   const input = parseInput(schema, await readBody(event))
-  const existing = await findSmtp(user.id)
+  const existing = await findSmtp(user.id, brand.id)
 
   const password = input.password || (existing ? decrypt(existing.passwordEnc) : '')
   if (!password) {

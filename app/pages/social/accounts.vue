@@ -33,6 +33,8 @@ const labels: Record<ConnectProvider, string> = {
   instagram: 'Instagram',
   youtube: 'YouTube',
   tiktok: 'TikTok',
+  x: 'X',
+  pinterest: 'Pinterest',
 }
 
 function applyApps(list: SocialApp[]) {
@@ -227,7 +229,7 @@ async function removeApp(provider: ConnectProvider) {
           {{ t('social.notConnected') }}
         </span>
       </div>
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
         <button
           v-for="app in apps"
           :key="app.provider"

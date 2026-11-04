@@ -1,13 +1,13 @@
-import { requireUser } from '../../../utils/auth'
 import { apiError } from '../../../utils/http'
+import { requireBrand } from '../../../utils/scope'
 import { deletePosts, deleteSocialAccount, deleteTargets, findSocialAccount, listTargetsForAccount, listTargetsForPosts } from '../../../utils/store'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
+  const { user, brand } = await requireBrand(event)
   const accountId = getRouterParam(event, 'id')
   if (!accountId) apiError(400, 'Account ontbreekt')
   const account = await findSocialAccount(accountId)
-  if (!account || account.userId !== user.id) apiError(404, 'Account niet gevonden')
+  if (!account || account.userId !== user.id || account.brandId !== brand.id) apiError(404, 'Account niet gevonden')
   const targets = await listTargetsForAccount(account.id)
   await deleteTargets(targets.map(target => target.id))
   if (targets.length) {

@@ -1,9 +1,9 @@
 import { listPosts, listSocialAccounts, listTargetsForPosts } from '../store'
 import { engagementRate, interactionCount, labelById, type PerformanceLabel } from './performance'
 
-export async function recentPerformance(userId: string) {
-  const accounts = await listSocialAccounts(userId)
-  const posts = await listPosts(userId, 200)
+export async function recentPerformance(userId: string, brandId: string) {
+  const accounts = await listSocialAccounts(userId, brandId)
+  const posts = await listPosts(userId, brandId, 200)
   const targets = await listTargetsForPosts(posts.map(post => post.id))
   const labels = labelById(targets)
   return accounts.map(account => ({
@@ -24,8 +24,8 @@ export async function recentPerformance(userId: string) {
   })).filter(account => account.posts.length > 0)
 }
 
-export async function socialBrief(userId: string, locale: 'nl' | 'en') {
-  const accounts = await recentPerformance(userId)
+export async function socialBrief(userId: string, brandId: string, locale: 'nl' | 'en') {
+  const accounts = await recentPerformance(userId, brandId)
   const dutch = locale !== 'en'
   const rules = dutch
     ? 'Beoordeel elk account apart. Volg wat op dit account sterk presteert. Herhaal een zwakke invalshoek niet op hetzelfde account. Een zwak resultaat op het ene platform zegt niets over een ander platform. Plaats geen bijna-identieke tekst opnieuw op hetzelfde account.'

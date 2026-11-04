@@ -2,8 +2,8 @@ import { ImapFlow } from 'imapflow'
 import { decrypt } from '../crypto'
 import { findSmtp } from '../store'
 
-export async function hasReply(userId: string, fromEmail: string) {
-  const smtp = await findSmtp(userId)
+export async function hasReply(userId: string, brandId: string, fromEmail: string) {
+  const smtp = await findSmtp(userId, brandId)
   if (!smtp?.imapHost || !smtp.imapPort) return false
   const client = new ImapFlow({
     host: smtp.imapHost,

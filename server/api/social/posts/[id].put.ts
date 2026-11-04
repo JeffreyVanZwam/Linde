@@ -1,10 +1,10 @@
-import { requireUser } from '../../../utils/auth'
+import { requireBrand } from '../../../utils/scope'
 import { parseInput } from '../../../utils/http'
 import { postInputSchema, writePost } from '../../../utils/social/posts'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
+  const { user, brand } = await requireBrand(event)
   const postId = getRouterParam(event, 'id')
   const input = parseInput(postInputSchema, await readBody(event))
-  return writePost(user.id, input, postId)
+  return writePost(user.id, brand.id, input, postId)
 })

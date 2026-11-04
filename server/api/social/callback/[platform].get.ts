@@ -6,7 +6,9 @@ import { socialApp } from '../../../utils/social/apps'
 import { linkedinExchange, linkedinOrganizations, linkedinProfile } from '../../../utils/social/linkedin'
 import { instagramExchange, instagramProfile, metaAccounts, metaExchange, metaProfile } from '../../../utils/social/meta'
 import { saveConnectPending, saveLinkedInPending } from '../../../utils/social/pending'
+import { pinterestExchange, pinterestProfile } from '../../../utils/social/pinterest'
 import { tiktokExchange, tiktokProfile } from '../../../utils/social/tiktok'
+import { xExchange, xProfile } from '../../../utils/social/x'
 import { youtubeChannel, youtubeExchange } from '../../../utils/social/youtube'
 
 export default defineEventHandler(async (event) => {
@@ -17,9 +19,11 @@ export default defineEventHandler(async (event) => {
   const code = String(query.code || '')
   const state = String(query.state || '')
   const expected = getCookie(event, 'oauth_state')
+  const verifier = getCookie(event, 'oauth_verifier') || ''
   const locale = getCookie(event, 'oauth_locale') === 'en' ? 'en' : 'nl'
   deleteCookie(event, 'oauth_state', { path: '/' })
   deleteCookie(event, 'oauth_locale', { path: '/' })
+  deleteCookie(event, 'oauth_verifier', { path: '/' })
   if (query.error) {
     if (!state || state !== expected) apiError(400, 'OAuth-state klopt niet')
     const description = String(query.error_description || query.error).replaceAll('&quot;', '"').slice(0, 300)
@@ -117,6 +121,25 @@ export default defineEventHandler(async (event) => {
       displayName: channel.displayName,
       ...token,
       meta: { uploadsPlaylistId: channel.uploadsPlaylistId },
+    })
+  }
+  else if (platform === 'x') {
+    if (!verifier) apiError(400, 'OAuth-verifier ontbreekt')
+    const token = await xExchange(code, verifier, app)
+    const profile = await xProfile(token.accessToken)
+    if (!profile.externalId) apiError(400, 'X-profiel heeft geen id')
+    await upsertSocialAccount(user.id, { platform: 'x', ...profile, ...token })
+  }
+  else if (platform === 'pinterest') {
+    const token = await pinterestExchange(code, app)
+    const profile = await pinterestProfile(token.accessToken)
+    if (!profile.externalId) apiError(400, 'Pinterest-profiel heeft geen id')
+    await upsertSocialAccount(user.id, {
+      platform: 'pinterest',
+      externalId: profile.externalId,
+      displayName: profile.displayName,
+      ...token,
+      meta: { boardId: profile.boardId },
     })
   }
   else {

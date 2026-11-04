@@ -1,9 +1,9 @@
-import { requireUser } from '../../utils/auth'
+import { requireBrand } from '../../utils/scope'
 import { apiError } from '../../utils/http'
 import { saveMedia } from '../../utils/media'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
+  const { user, brand } = await requireBrand(event)
   const parts = await readMultipartFormData(event)
   const file = parts?.find(part => part.name === 'file' && part.data?.length)
   if (!file?.data) apiError(400, 'Bestand ontbreekt')
@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
   const source = String(getQuery(event).source || 'upload')
   const assetId = await saveMedia({
     userId: user.id,
+    brandId: brand.id,
     bytes: file.data,
     mime,
     source: source === 'edited' ? 'edited' : 'upload',

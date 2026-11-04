@@ -5,7 +5,9 @@ import { readyAccount } from './accounts'
 import { socialApp } from './apps'
 import { linkedinPublish } from './linkedin'
 import { metaPublish } from './meta'
+import { pinterestPublish } from './pinterest'
 import { tiktokPublish } from './tiktok'
+import { xPublish } from './x'
 import type { PublishInput } from './types'
 import { youtubePublish } from './youtube'
 
@@ -27,7 +29,6 @@ export async function publishPost(postId: string) {
   for (const target of targets) {
     if (target.status === 'published' || target.status === 'draft') continue
     if (!target.accountId) {
-      failed = true
       await updateTarget(target.id, { status: 'failed', error: 'Geen gekoppeld account' })
       continue
     }
@@ -77,5 +78,7 @@ async function publishTo(userId: string, account: Awaited<ReturnType<typeof read
     const app = await socialApp(userId, 'tiktok')
     return tiktokPublish(account.accessToken, input, app?.privacy || 'SELF_ONLY')
   }
+  if (account.platform === 'x') return xPublish(account.accessToken, input)
+  if (account.platform === 'pinterest') return pinterestPublish(account.accessToken, account.meta?.boardId || '', input)
   throw new Error('Onbekend platform')
 }

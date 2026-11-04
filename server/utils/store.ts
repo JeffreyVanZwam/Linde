@@ -34,13 +34,93 @@ import {
   type StepRow,
 } from './rows'
 
-async function byUser(collection: string, userId: string, sort?: string) {
-  return listRecords(collection, { filter: await filterOf('user = {:user}', { user: userId }), sort })
+const brandPalette = ['#1F6B4A', '#7A3E6D', '#C4A574', '#2F6F6A', '#8C4A2F', '#3D5A80']
+
+function relationId(value: unknown) {
+  return typeof value === 'string' && value ? value : ''
+}
+
+async function byOwner(collection: string, userId: string, brandId: string, sort?: string) {
+  return listRecords(collection, {
+    filter: await filterOf('user = {:user} && brand = {:brand}', { user: userId, brand: brandId }),
+    sort,
+  })
+}
+
+export async function listBrandRows(userId: string) {
+  const rows = await listRecords('brands', {
+    filter: await filterOf('user = {:user}', { user: userId }),
+    sort: 'position,created',
+  })
+  return rows.map(mapBrand)
+}
+
+export async function ensureActiveBrand(userId: string) {
+  const rows = await listBrandRows(userId)
+  if (!rows.length) return null
+  const user = await oneRecord('users', userId)
+  const currentId = relationId(user?.activeBrand)
+  const current = rows.find(row => row.id === currentId && !row.archived)
+  if (current) return current
+  const next = rows.find(row => !row.archived) || rows[0]
+  if (!next) return null
+  await updateRecord('users', userId, { activeBrand: next.id })
+  return next
+}
+
+export async function setActiveBrand(userId: string, brandId: string) {
+  const rows = await listBrandRows(userId)
+  const brand = rows.find(row => row.id === brandId)
+  if (!brand || brand.archived) return null
+  await updateRecord('users', userId, { activeBrand: brand.id })
+  return brand
+}
+
+export async function createBrandRow(userId: string, companyName: string) {
+  const rows = await listBrandRows(userId)
+  const row = await createRecord('brands', {
+    user: userId,
+    companyName,
+    color: brandPalette[rows.length % brandPalette.length],
+    position: rows.length,
+    archived: false,
+    onboardingCompleted: false,
+    writingRules: [],
+  })
+  await updateRecord('users', userId, { activeBrand: row.id })
+  return mapBrand(row)
+}
+
+export async function updateBrandMeta(id: string, patch: Partial<{ companyName: string, color: string, archived: boolean, position: number }>) {
+  const data: Record<string, unknown> = {}
+  if (patch.companyName !== undefined) data.companyName = patch.companyName
+  if (patch.color !== undefined) data.color = patch.color
+  if (patch.archived !== undefined) data.archived = patch.archived
+  if (patch.position !== undefined) data.position = patch.position
+  await updateRecord('brands', id, data)
+}
+
+export async function reorderBrands(userId: string, ids: string[]) {
+  const rows = await listBrandRows(userId)
+  const owned = new Set(rows.map(row => row.id))
+  let position = 0
+  for (const id of ids) {
+    if (!owned.has(id)) continue
+    await updateRecord('brands', id, { position })
+    position += 1
+  }
+}
+
+export async function deleteBrandRow(id: string) {
+  await removeRecord('brands', id)
+}
+
+export async function saveWritingRules(id: string, rules: unknown) {
+  await updateRecord('brands', id, { writingRules: rules })
 }
 
 export async function findBrand(userId: string) {
-  const row = await firstRecord('brands', await filterOf('user = {:user}', { user: userId }))
-  return row ? mapBrand(row) : null
+  return ensureActiveBrand(userId)
 }
 
 export async function saveBrandRecord(userId: string, existing: BrandRow | null, values: {
@@ -74,28 +154,41 @@ export async function saveBrandRecord(userId: string, existing: BrandRow | null,
     dossier: values.dossier,
   }
   if (existing) await updateRecord('brands', existing.id, data)
-  else await createRecord('brands', { user: userId, ...data })
+  else {
+    const rows = await listBrandRows(userId)
+    const row = await createRecord('brands', {
+      user: userId,
+      color: brandPalette[rows.length % brandPalette.length],
+      position: rows.length,
+      archived: false,
+      writingRules: [],
+      ...data,
+    })
+    await updateRecord('users', userId, { activeBrand: row.id })
+  }
 }
 
-export async function listConversations(userId: string, module?: string) {
+export async function listConversations(userId: string, brandId: string, module?: string) {
   const filter = module
-    ? await filterOf('user = {:user} && module = {:module}', { user: userId, module })
-    : await filterOf('user = {:user}', { user: userId })
+    ? await filterOf('user = {:user} && brand = {:brand} && module = {:module}', { user: userId, brand: brandId, module })
+    : await filterOf('user = {:user} && brand = {:brand}', { user: userId, brand: brandId })
   const rows = await listRecords('conversations', { filter, sort: '-updated' })
   return rows.map(mapConversation)
 }
 
-export async function findConversation(id: string, userId?: string) {
+export async function findConversation(id: string, userId?: string, brandId?: string) {
   const row = await oneRecord('conversations', id)
   if (!row) return null
   const mapped = mapConversation(row)
   if (userId && mapped.userId !== userId) return null
+  if (brandId && mapped.brandId !== brandId) return null
   return mapped
 }
 
-export async function createConversation(input: { userId: string, module: string, title: string }) {
+export async function createConversation(input: { userId: string, brandId: string, module: string, title: string }) {
   const row = await createRecord('conversations', {
     user: input.userId,
+    brand: input.brandId,
     module: input.module,
     title: input.title,
   })
@@ -132,8 +225,8 @@ export async function createMessage(input: { conversationId: string, role: strin
   return row.id
 }
 
-export async function listSocialAccounts(userId: string) {
-  return (await byUser('social_accounts', userId)).map(mapAccount)
+export async function listSocialAccounts(userId: string, brandId: string) {
+  return (await byOwner('social_accounts', userId, brandId)).map(mapAccount)
 }
 
 export async function listAllSocialAccounts() {
@@ -145,16 +238,17 @@ export async function findSocialAccount(id: string) {
   return row ? mapAccount(row) : null
 }
 
-export async function findSocialAccountMatch(userId: string, platform: string, externalId: string) {
+export async function findSocialAccountMatch(brandId: string, platform: string, externalId: string) {
   const row = await firstRecord('social_accounts', await filterOf(
-    'user = {:user} && platform = {:platform} && externalId = {:externalId}',
-    { user: userId, platform, externalId },
+    'brand = {:brand} && platform = {:platform} && externalId = {:externalId}',
+    { brand: brandId, platform, externalId },
   ))
   return row ? mapAccount(row) : null
 }
 
 export async function createSocialAccount(input: {
   userId: string
+  brandId: string
   platform: string
   externalId: string
   displayName: string
@@ -165,6 +259,7 @@ export async function createSocialAccount(input: {
 }) {
   const row = await createRecord('social_accounts', {
     user: input.userId,
+    brand: input.brandId,
     platform: input.platform,
     externalId: input.externalId,
     displayName: input.displayName,
@@ -214,19 +309,20 @@ export async function listMedia(ids: string[]) {
   return rows.map(mapMedia)
 }
 
-export async function listPosts(userId: string, limit = 500) {
+export async function listPosts(userId: string, brandId: string, limit = 500) {
   const rows = await listRecords('social_posts', {
-    filter: await filterOf('user = {:user}', { user: userId }),
+    filter: await filterOf('user = {:user} && brand = {:brand}', { user: userId, brand: brandId }),
     sort: '-created',
   })
   return rows.slice(0, limit).map(mapPost)
 }
 
-export async function findPost(id: string, userId?: string) {
+export async function findPost(id: string, userId?: string, brandId?: string) {
   const row = await oneRecord('social_posts', id)
   if (!row) return null
   const mapped = mapPost(row)
   if (userId && mapped.userId !== userId) return null
+  if (brandId && mapped.brandId !== brandId) return null
   return mapped
 }
 
@@ -238,6 +334,7 @@ export async function listDuePosts() {
 
 export async function createPost(input: {
   userId: string
+  brandId: string
   conversationId?: string | null
   body: string
   mediaAssetId?: string | null
@@ -246,13 +343,16 @@ export async function createPost(input: {
   source: string
   scheduledAt?: Date | null
   duplicateWarning?: string | null
+  angle?: string | null
 }) {
   const data: Record<string, unknown> = {
     user: input.userId,
+    brand: input.brandId,
     body: input.body,
     status: input.status,
     source: input.source,
     duplicateWarning: input.duplicateWarning || '',
+    angle: input.angle || '',
   }
   if (input.conversationId) data.conversation = input.conversationId
   if (input.mediaAssetId) data.media = input.mediaAssetId
@@ -282,6 +382,14 @@ export async function updatePost(id: string, patch: Partial<{
 
 export async function deletePosts(ids: string[]) {
   for (const id of ids) await removeRecord('social_posts', id)
+}
+
+export async function setOpenTargetsStatus(postId: string, status: 'scheduled' | 'draft') {
+  const targets = await listTargetsForPost(postId)
+  for (const target of targets) {
+    if (target.status === 'published' || target.status === 'failed') continue
+    await updateTarget(target.id, { status })
+  }
 }
 
 export async function listTargetsForPosts(postIds: string[]) {
@@ -390,15 +498,16 @@ export async function deleteTargets(ids: string[]) {
   for (const id of ids) await removeRecord('social_post_targets', id)
 }
 
-export async function listSiteArticles(userId: string) {
-  return (await byUser('site_articles', userId)).map(mapArticle)
+export async function listSiteArticles(userId: string, brandId: string) {
+  return (await byOwner('site_articles', userId, brandId)).map(mapArticle)
 }
 
-export async function replaceSiteArticles(userId: string, rows: Array<{ url: string, title: string, excerpt: string }>) {
-  await removeFiltered('site_articles', await filterOf('user = {:user}', { user: userId }))
+export async function replaceSiteArticles(userId: string, brandId: string, rows: Array<{ url: string, title: string, excerpt: string }>) {
+  await removeFiltered('site_articles', await filterOf('user = {:user} && brand = {:brand}', { user: userId, brand: brandId }))
   for (const row of rows) {
     await createRecord('site_articles', {
       user: userId,
+      brand: brandId,
       url: row.url,
       title: row.title,
       excerpt: row.excerpt,
@@ -406,23 +515,46 @@ export async function replaceSiteArticles(userId: string, rows: Array<{ url: str
   }
 }
 
-export async function listDrafts(userId: string) {
+export async function listDrafts(userId: string, brandId: string) {
   const rows = await listRecords('article_drafts', {
-    filter: await filterOf('user = {:user}', { user: userId }),
+    filter: await filterOf('user = {:user} && brand = {:brand}', { user: userId, brand: brandId }),
     sort: '-updated',
   })
   return rows.map(mapDraft)
 }
 
-export async function findDraft(id: string, userId: string) {
+export async function findDraft(id: string, userId: string, brandId?: string) {
   const row = await oneRecord('article_drafts', id)
   if (!row) return null
   const mapped = mapDraft(row)
-  return mapped.userId === userId ? mapped : null
+  if (mapped.userId !== userId) return null
+  if (brandId && mapped.brandId !== brandId) return null
+  return mapped
+}
+
+export async function updateDraft(id: string, patch: Partial<{
+  title: string
+  metaTitle: string
+  metaDescription: string
+  markdown: string
+  faq: unknown
+  keywords: unknown
+  geoNotes: string
+}>) {
+  const data: Record<string, unknown> = {}
+  if (patch.title !== undefined) data.title = patch.title
+  if (patch.metaTitle !== undefined) data.metaTitle = patch.metaTitle
+  if (patch.metaDescription !== undefined) data.metaDescription = patch.metaDescription
+  if (patch.markdown !== undefined) data.markdown = patch.markdown
+  if (patch.faq !== undefined) data.faq = patch.faq
+  if (patch.keywords !== undefined) data.keywords = patch.keywords
+  if (patch.geoNotes !== undefined) data.geoNotes = patch.geoNotes
+  await updateRecord('article_drafts', id, data)
 }
 
 export async function createDraft(input: {
   userId: string
+  brandId: string
   conversationId?: string | null
   title: string
   slug: string
@@ -437,6 +569,7 @@ export async function createDraft(input: {
 }) {
   const data: Record<string, unknown> = {
     user: input.userId,
+    brand: input.brandId,
     title: input.title,
     slug: input.slug,
     metaTitle: input.metaTitle,
@@ -453,12 +586,12 @@ export async function createDraft(input: {
   return row.id
 }
 
-export async function findSmtp(userId: string) {
-  const row = await firstRecord('smtp_connections', await filterOf('user = {:user}', { user: userId }))
+export async function findSmtp(userId: string, brandId: string) {
+  const row = await firstRecord('smtp_connections', await filterOf('user = {:user} && brand = {:brand}', { user: userId, brand: brandId }))
   return row ? mapSmtp(row) : null
 }
 
-export async function saveSmtp(userId: string, existing: SmtpRow | null, values: {
+export async function saveSmtp(userId: string, brandId: string, existing: SmtpRow | null, values: {
   host: string
   port: number
   secure: boolean
@@ -483,27 +616,29 @@ export async function saveSmtp(userId: string, existing: SmtpRow | null, values:
     imapSecure: values.imapSecure ?? false,
   }
   if (existing) await updateRecord('smtp_connections', existing.id, data)
-  else await createRecord('smtp_connections', { user: userId, ...data })
+  else await createRecord('smtp_connections', { user: userId, brand: brandId, ...data })
 }
 
-export async function listCampaigns(userId: string) {
+export async function listCampaigns(userId: string, brandId: string) {
   const rows = await listRecords('outreach_campaigns', {
-    filter: await filterOf('user = {:user}', { user: userId }),
+    filter: await filterOf('user = {:user} && brand = {:brand}', { user: userId, brand: brandId }),
     sort: '-updated',
   })
   return rows.map(mapCampaign)
 }
 
-export async function findCampaign(id: string, userId?: string) {
+export async function findCampaign(id: string, userId?: string, brandId?: string) {
   const row = await oneRecord('outreach_campaigns', id)
   if (!row) return null
   const mapped = mapCampaign(row)
   if (userId && mapped.userId !== userId) return null
+  if (brandId && mapped.brandId !== brandId) return null
   return mapped
 }
 
 export async function createCampaign(input: {
   userId: string
+  brandId: string
   conversationId?: string | null
   name: string
   goal?: string | null
@@ -513,6 +648,7 @@ export async function createCampaign(input: {
 }) {
   const data: Record<string, unknown> = {
     user: input.userId,
+    brand: input.brandId,
     name: input.name,
     goal: input.goal || '',
     audience: input.audience || '',
@@ -657,38 +793,39 @@ export async function cancelOpenMessages(recipientId: string) {
 
 const folderLocks = new Map<string, Promise<string>>()
 
-export async function ensureFolder(userId: string, name: string, parentId: string | null = null) {
-  const key = `${userId}:${parentId || ''}:${name}`
+export async function ensureFolder(userId: string, brandId: string, name: string, parentId: string | null = null) {
+  const key = `${brandId}:${parentId || ''}:${name}`
   const pending = folderLocks.get(key)
   if (pending) return pending
   const job = (async () => {
     const parent = parentId || ''
     const existing = await firstRecord('folders', await filterOf(
-      'user = {:user} && name = {:name} && parent = {:parent}',
-      { user: userId, name, parent },
+      'user = {:user} && brand = {:brand} && name = {:name} && parent = {:parent}',
+      { user: userId, brand: brandId, name, parent },
     ))
     if (existing) return existing.id
-    const created = await createRecord('folders', { user: userId, name, parent })
+    const created = await createRecord('folders', { user: userId, brand: brandId, name, parent })
     return created.id
   })().finally(() => folderLocks.delete(key))
   folderLocks.set(key, job)
   return job
 }
 
-export async function listFolders(userId: string) {
-  return (await byUser('folders', userId, 'name')).map(mapFolder)
+export async function listFolders(userId: string, brandId: string) {
+  return (await byOwner('folders', userId, brandId, 'name')).map(mapFolder)
 }
 
-export async function findFolder(id: string, userId?: string) {
+export async function findFolder(id: string, userId?: string, brandId?: string) {
   const row = await oneRecord('folders', id)
   if (!row) return null
   const mapped = mapFolder(row)
   if (userId && mapped.userId !== userId) return null
+  if (brandId && mapped.brandId !== brandId) return null
   return mapped
 }
 
-export async function createFolder(userId: string, name: string, parentId: string | null) {
-  const row = await createRecord('folders', { user: userId, name, parent: parentId || '' })
+export async function createFolder(userId: string, brandId: string, name: string, parentId: string | null) {
+  const row = await createRecord('folders', { user: userId, brand: brandId, name, parent: parentId || '' })
   return row.id
 }
 
@@ -703,8 +840,8 @@ export async function deleteFolder(id: string) {
   await removeRecord('folders', id)
 }
 
-export async function listFilesIn(userId: string, folderId: string | null) {
-  const filter = await filterOf('user = {:user} && folder = {:folder}', { user: userId, folder: folderId || '' })
+export async function listFilesIn(userId: string, brandId: string, folderId: string | null) {
+  const filter = await filterOf('user = {:user} && brand = {:brand} && folder = {:folder}', { user: userId, brand: brandId, folder: folderId || '' })
   const rows = await listRecords('library_files', { filter, sort: '-created' })
   return rows.map(mapMedia)
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
+const localePath = useLocalePath()
 const route = useRoute()
 const api = useRequestFetch()
 const draft = await api<{
@@ -15,9 +16,61 @@ const draft = await api<{
   jsonLd: unknown
 }>(`/api/seo/drafts/${route.params.id}`)
 const copied = ref(false)
+const markdown = ref(draft.markdown)
+const quote = ref('')
+const instruction = ref('')
+const error = ref('')
+const busy = ref(false)
+
+async function saveDraft() {
+  busy.value = true
+  error.value = ''
+  try {
+    await api(`/api/seo/drafts/${route.params.id}`, { method: 'PUT', body: { markdown: markdown.value, title: draft.title } })
+  }
+  catch (cause) {
+    error.value = errorText(cause) || t('common.error')
+  }
+  finally {
+    busy.value = false
+  }
+}
+
+async function rewrite() {
+  busy.value = true
+  error.value = ''
+  try {
+    const result = await api<{ markdown: string }>(`/api/seo/drafts/${route.params.id}/rewrite`, {
+      method: 'POST',
+      body: { quote: quote.value, instruction: instruction.value },
+    })
+    markdown.value = result.markdown
+  }
+  catch (cause) {
+    error.value = errorText(cause) || t('common.error')
+  }
+  finally {
+    busy.value = false
+  }
+}
+
+async function repurpose() {
+  busy.value = true
+  error.value = ''
+  try {
+    await api(`/api/seo/drafts/${route.params.id}/repurpose`, { method: 'POST' })
+    await navigateTo(localePath('/social'))
+  }
+  catch (cause) {
+    error.value = errorText(cause) || t('common.error')
+  }
+  finally {
+    busy.value = false
+  }
+}
 
 async function copy() {
-  await navigator.clipboard.writeText(draft.markdown)
+  await navigator.clipboard.writeText(markdown.value)
   copied.value = true
 }
 </script>
@@ -29,12 +82,26 @@ async function copy() {
       <div class="space-y-4">
         <AppPageHead :eyebrow="draft.slug" :title="draft.title" :lead="`${draft.metaTitle} — ${draft.metaDescription}`">
           <template #actions>
+            <UiButton variant="ghost" :disabled="busy" @click="repurpose">
+              {{ t('forge.repurpose') }}
+            </UiButton>
             <UiButton variant="ghost" @click="copy">
               {{ copied ? t('common.save') : t('seo.copy') }}
             </UiButton>
           </template>
         </AppPageHead>
-        <pre class="whitespace-pre-wrap rounded-[1.6rem] border border-line bg-surface p-6 text-sm leading-6">{{ draft.markdown }}</pre>
+        <UiTextarea v-model="markdown" :rows="18" />
+        <div class="flex flex-wrap gap-2">
+          <UiButton type="button" :disabled="busy" @click="saveDraft">{{ t('common.save') }}</UiButton>
+        </div>
+        <UiCard>
+          <UiField :label="t('forge.rewrite')">
+            <UiTextarea v-model="quote" :rows="3" />
+          </UiField>
+          <UiInput v-model="instruction" class="mt-3" />
+          <UiButton class="mt-3" type="button" variant="ghost" :disabled="busy" @click="rewrite">{{ t('forge.rewrite') }}</UiButton>
+        </UiCard>
+        <UiAlert :message="error" />
       </div>
       <div class="space-y-4 xl:sticky xl:top-0">
         <UiCard tone="highlight">

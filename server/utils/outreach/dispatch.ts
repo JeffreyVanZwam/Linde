@@ -11,13 +11,13 @@ export async function sendDueOutreach() {
     if (!recipient || recipient.status !== 'active') continue
     const campaign = await findCampaign(recipient.campaignId)
     if (!campaign) continue
-    const campaigns = await listCampaigns(campaign.userId)
+    const campaigns = await listCampaigns(campaign.userId, campaign.brandId)
     const start = new Date()
     start.setHours(0, 0, 0, 0)
     const sentToday = await listSentSince(campaigns.map(item => item.id), start)
     if (sentToday.length >= limit) continue
     try {
-      if (await hasReply(campaign.userId, recipient.email)) {
+      if (await hasReply(campaign.userId, campaign.brandId, recipient.email)) {
         await updateRecipient(recipient.id, { status: 'replied' })
         await cancelOpenMessages(recipient.id)
         continue
@@ -27,7 +27,7 @@ export async function sendDueOutreach() {
       // IMAP is optioneel.
     }
     try {
-      const messageId = await sendOutreachMail(campaign.userId, {
+      const messageId = await sendOutreachMail(campaign.userId, campaign.brandId, {
         to: recipient.email,
         subject: message.subject,
         body: message.body,

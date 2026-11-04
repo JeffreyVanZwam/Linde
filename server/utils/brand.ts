@@ -1,6 +1,6 @@
 import { coerceDossier, legacyFromDossier, type BrandDossier } from '~~/shared/dossier'
 import { parseJson } from './http'
-import type { BrandRow } from './rows'
+import type { BrandRow, WritingRule } from './rows'
 import { findBrand, saveBrandRecord } from './store'
 
 export type BrandView = {
@@ -18,6 +18,10 @@ export type BrandView = {
   articlesUrl: string | null
   onboardingCompleted: boolean
   dossier: BrandDossier | null
+  color: string
+  position: number
+  archived: boolean
+  writingRules: WritingRule[]
 }
 
 export function toBrandView(row: BrandRow): BrandView {
@@ -36,6 +40,10 @@ export function toBrandView(row: BrandRow): BrandView {
     articlesUrl: row.articlesUrl,
     onboardingCompleted: row.onboardingCompleted,
     dossier: readDossier(row.dossierJson),
+    color: row.color,
+    position: row.position,
+    archived: row.archived,
+    writingRules: parseJson<WritingRule[]>(row.writingRulesJson, []).filter(rule => rule && typeof rule.text === 'string'),
   }
 }
 
@@ -78,8 +86,10 @@ export async function saveBrand(userId: string, input: Partial<Omit<BrandView, '
   return getBrand(userId)
 }
 
-export function brandInstructions(brand: BrandView | null) {
+export function brandInstructions(brand: BrandView | null, notes: Array<{ kind: string, title: string, body: string }> = []) {
   if (!brand) return 'Er is nog geen merkprofiel.'
+  const rules = brand.writingRules.filter(rule => rule.enabled && rule.text.trim())
+  const knowledge = notes.filter(note => note.body.trim()).slice(0, 12)
   return [
     `Bedrijf: ${brand.companyName || 'onbekend'}`,
     `Website: ${brand.websiteUrl || 'onbekend'}`,
@@ -91,7 +101,9 @@ export function brandInstructions(brand: BrandView | null) {
     `Fonts: ${brand.fonts.join(', ') || 'onbekend'}`,
     `Artikelen-URL: ${brand.articlesUrl || 'niet ingesteld'}`,
     brand.dossier ? dossierBrief(brand.dossier) : '',
-  ].filter(Boolean).join('\n').slice(0, 12_000)
+    rules.length ? `Schrijfregels voor social posts:\n${rules.map(rule => `- ${rule.text}`).join('\n')}` : '',
+    knowledge.length ? `Kennis en stem van dit merk:\n${knowledge.map(note => `${note.kind}: ${note.title}\n${clip(note.body, 700)}`).join('\n\n')}` : '',
+  ].filter(Boolean).join('\n').slice(0, 14_000)
 }
 
 function clip(value: string, max = 400) {

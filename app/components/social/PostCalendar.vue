@@ -23,6 +23,8 @@ type CalendarPost = {
 }
 type CalendarEvent = {
   id: string
+  postId: string
+  local: boolean
   label: string
   title: string
   detail: string
@@ -36,6 +38,12 @@ type PlacedEvent = CalendarEvent & { lane: number, lanes: number }
 const props = defineProps<{
   posts: CalendarPost[]
   accounts: ChannelAccount[]
+  selected?: string[]
+}>()
+
+const emit = defineEmits<{
+  toggle: [id: string]
+  reschedule: [payload: { id: string, scheduledAt: string }]
 }>()
 
 const { t, locale } = useI18n()
@@ -249,6 +257,8 @@ function toEvent(post: CalendarPost, targets: CalendarTarget[], key: string): Ca
   const time = new Intl.DateTimeFormat(locale.value, { hour: '2-digit', minute: '2-digit' }).format(when)
   return {
     id: `${post.id}-${key}`,
+    postId: post.id,
+    local: post.source === 'local' && post.status !== 'published',
     label,
     title: [time, label, detail].filter(Boolean).join(' · '),
     detail,
@@ -332,7 +342,31 @@ function tone(platform: string) {
   if (platform === 'instagram') return 'bg-[#C13584] text-white'
   if (platform === 'youtube') return 'bg-[#FF0033] text-white'
   if (platform === 'tiktok') return 'bg-ink text-surface'
+  if (platform === 'x') return 'bg-ink text-surface'
+  if (platform === 'pinterest') return 'bg-[#E60023] text-white'
   return 'bg-accent text-surface'
+}
+
+function dragStart(event: DragEvent, item: CalendarEvent) {
+  if (!item.local) {
+    event.preventDefault()
+    return
+  }
+  event.dataTransfer?.setData('text/plain', item.postId)
+}
+
+function dropOn(date: Date, event: DragEvent, hour?: number) {
+  const id = event.dataTransfer?.getData('text/plain')
+  if (!id) return
+  const next = new Date(date)
+  next.setHours(hour ?? 9, hour == null ? 5 : 0, 0, 0)
+  emit('reschedule', { id, scheduledAt: next.toISOString() })
+}
+
+function hourFrom(event: DragEvent, column: HTMLElement) {
+  const rect = column.getBoundingClientRect()
+  const offset = event.clientY - rect.top
+  return Math.min(23, Math.max(0, Math.floor(offset / hourHeight)))
 }
 
 function eventStyle(event: PlacedEvent) {
@@ -487,6 +521,8 @@ function onPick(event: Event) {
               :key="day.key"
               class="min-h-24 border-r border-b border-line p-1.5"
               :class="day.inMonth ? '' : 'bg-soft/60'"
+              @dragover.prevent
+              @drop="dropOn(day.date, $event)"
             >
               <button
                 type="button"
@@ -497,16 +533,17 @@ function onPick(event: Event) {
                 <span v-if="day.isToday" class="mr-1 inline-block size-1.5 rounded-full bg-accent align-middle" />
                 {{ day.number }}
               </button>
-              <NuxtLink
+              <div
                 v-for="event in day.events.slice(0, 3)"
                 :key="event.id"
-                :to="event.href"
-                :title="event.title"
-                class="mt-1 block truncate rounded-md px-1.5 py-1 text-[11px] leading-tight"
+                class="mt-1 flex items-center gap-1 truncate rounded-md px-1.5 py-1 text-[11px] leading-tight"
                 :class="tone(event.platform)"
+                :draggable="event.local"
+                @dragstart="dragStart($event, event)"
               >
-                {{ event.label }}
-              </NuxtLink>
+                <input v-if="event.local" type="checkbox" class="size-3" :checked="props.selected?.includes(event.postId)" @click.stop @change="emit('toggle', event.postId)">
+                <NuxtLink :to="event.href" :title="event.title" class="truncate">{{ event.label }}</NuxtLink>
+              </div>
               <button
                 v-if="day.events.length > 3"
                 type="button"
@@ -545,25 +582,32 @@ function onPick(event: Event) {
                 >{{ hourLabel(hour) }}</span>
               </div>
             </div>
-            <div v-for="day in visibleDays" :key="day.key" class="relative border-l border-line">
+            <div
+              v-for="day in visibleDays"
+              :key="day.key"
+              class="relative border-l border-line"
+              @dragover.prevent
+              @drop="dropOn(day.date, $event, hourFrom($event, $event.currentTarget as HTMLElement))"
+            >
               <div
                 v-if="pastHeight(day.date) > 0"
                 class="pointer-events-none absolute inset-x-0 top-0"
                 :style="{ height: `${pastHeight(day.date)}px`, backgroundImage: hatch }"
               />
               <div v-for="hour in hours" :key="hour" class="border-b border-line" :style="{ height: `${hourHeight}px` }" />
-              <NuxtLink
+              <div
                 v-for="event in day.events"
                 :key="event.id"
-                :to="event.href"
-                :title="event.title"
-                class="absolute z-10 overflow-hidden rounded-md px-1.5 py-1 text-left text-xs leading-snug transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface"
+                class="absolute z-10 overflow-hidden rounded-md px-1.5 py-1 text-left text-xs leading-snug"
                 :class="tone(event.platform)"
                 :style="eventStyle(event)"
+                :draggable="event.local"
+                @dragstart="dragStart($event, event)"
               >
-                <span class="block truncate font-medium">{{ event.label }}</span>
+                <input v-if="event.local" type="checkbox" class="mr-1 size-3 align-middle" :checked="props.selected?.includes(event.postId)" @click.stop @change="emit('toggle', event.postId)">
+                <NuxtLink :to="event.href" :title="event.title" class="font-medium">{{ event.label }}</NuxtLink>
                 <span v-if="event.detail" class="block truncate text-[10px] opacity-80">{{ event.detail }}</span>
-              </NuxtLink>
+              </div>
               <div
                 v-if="day.isToday"
                 class="pointer-events-none absolute inset-x-0 z-20"

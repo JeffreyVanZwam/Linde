@@ -4,11 +4,36 @@ const localePath = useLocalePath()
 const api = useRequestFetch()
 const posts = await api<Array<{ id: string, body: string, status: string }>>('/api/social/posts')
 const local = computed(() => posts.filter(post => post.status !== 'published'))
+const pumpText = ref('')
+const pumpUrl = ref('')
+const pumpFile = ref('')
+const pumpError = ref('')
+const pumping = ref(false)
 const tab = ref('posts')
 const tabs = computed(() => [
   { id: 'posts', label: t('shell.posts') },
   { id: 'chats', label: t('chat.list') },
 ])
+async function pump() {
+  pumping.value = true
+  pumpError.value = ''
+  try {
+    await api('/api/social/pump', {
+      method: 'POST',
+      body: { text: pumpText.value, url: pumpUrl.value || undefined, fileId: pumpFile.value || undefined },
+    })
+    pumpText.value = ''
+    await refreshNuxtData()
+    window.location.reload()
+  }
+  catch (cause) {
+    pumpError.value = errorText(cause) || t('common.error')
+  }
+  finally {
+    pumping.value = false
+  }
+}
+
 const counts = computed(() => [
   { label: t('seo.drafts'), value: posts.filter(post => post.status === 'draft').length, tone: 'surface' as const },
   { label: t('home.upcoming'), value: posts.filter(post => post.status === 'scheduled').length, tone: 'highlight' as const },
@@ -28,6 +53,20 @@ const counts = computed(() => [
         </UiButton>
       </template>
     </AppPageHead>
+
+    <UiCard>
+      <h2 class="font-display text-2xl font-semibold tracking-tight">{{ t('forge.pump') }}</h2>
+      <p class="mt-1 text-sm text-muted">{{ t('forge.pumpLead') }}</p>
+      <form class="mt-4 space-y-3" @submit.prevent="pump">
+        <UiTextarea v-model="pumpText" :rows="4" />
+        <div class="grid gap-3 sm:grid-cols-2">
+          <UiInput v-model="pumpUrl" :placeholder="t('forge.url')" />
+          <UiInput v-model="pumpFile" :placeholder="t('forge.file')" />
+        </div>
+        <UiButton type="submit" :disabled="pumping || !pumpText.trim()">{{ t('forge.run') }}</UiButton>
+        <UiAlert :message="pumpError" />
+      </form>
+    </UiCard>
 
     <div class="grid gap-3 sm:grid-cols-3">
       <UiCard v-for="item in counts" :key="item.label" :tone="item.tone" class="min-h-28">

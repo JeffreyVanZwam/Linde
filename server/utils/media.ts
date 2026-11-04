@@ -5,6 +5,7 @@ import { ensureFolder, findMedia } from './store'
 
 export async function saveMedia(options: {
   userId: string
+  brandId: string
   bytes: Buffer
   mime: string
   source: string
@@ -14,12 +15,13 @@ export async function saveMedia(options: {
   folderId?: string | null
 }) {
   const folderId = options.folderId === undefined
-    ? await ensureFolder(options.userId, folderName(options.source))
+    ? await ensureFolder(options.userId, options.brandId, folderName(options.source))
     : options.folderId
   const extension = options.extension || extnameFromMime(options.mime)
   const filename = safeName(options.name, extension)
   const form = new FormData()
   form.set('user', options.userId)
+  form.set('brand', options.brandId)
   if (folderId) form.set('folder', folderId)
   form.set('name', filename)
   form.set('kind', kindFromMime(options.mime))

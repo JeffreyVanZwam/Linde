@@ -1,7 +1,7 @@
-export async function formPost(url: string, body: Record<string, string>) {
+export async function formPost(url: string, body: Record<string, string>, headers?: Record<string, string>) {
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    headers: { 'content-type': 'application/x-www-form-urlencoded', ...headers },
     body: new URLSearchParams(body),
   })
   const data = await response.json().catch(() => ({}))

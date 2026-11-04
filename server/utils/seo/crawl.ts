@@ -3,7 +3,7 @@ import { articlesFromListing, isListingArticleUrl, isSitemapIndex, isSitemapUrl,
 
 const MAX_ARTICLES = 80
 
-export async function refreshArticles(userId: string, articlesUrl: string) {
+export async function refreshArticles(userId: string, brandId: string, articlesUrl: string) {
   const root = new URL(articlesUrl)
   const response = await fetch(root, {
     signal: AbortSignal.timeout(12_000),
@@ -25,8 +25,8 @@ export async function refreshArticles(userId: string, articlesUrl: string) {
     title: article.title || url,
     excerpt: article.excerpt.slice(0, 280),
   }))
-  if (rows.length) await replaceSiteArticles(userId, rows)
-  else await replaceSiteArticles(userId, [])
+  if (rows.length) await replaceSiteArticles(userId, brandId, rows)
+  else await replaceSiteArticles(userId, brandId, [])
   return rows.length
 }
 

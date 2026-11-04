@@ -1,6 +1,6 @@
 # Adding a social provider
 
-The existing adapters live in `server/utils/social/`. Each platform has the same shape: an authorization URL, a code exchange, a profile, recent posts and a publish function.
+The existing adapters live in `server/utils/social/`. LinkedIn, Facebook, Instagram, YouTube, TikTok, X and Pinterest each have the same shape: an authorization URL, a code exchange, a profile, recent posts and a publish function. X uses OAuth 2 PKCE (`X_CLIENT_ID` / `X_CLIENT_SECRET`, or a saved developer app). Pinterest uses the v5 API (`PINTEREST_APP_ID` / `PINTEREST_APP_SECRET`) and stores the chosen board id on the account. X posts stay within 280 characters. Pinterest needs an image and a title.
 
 ## Steps
 

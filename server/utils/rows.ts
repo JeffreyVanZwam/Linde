@@ -1,5 +1,12 @@
 import type { PbRecord } from './pb'
 
+export type WritingRule = {
+  id: string
+  text: string
+  enabled: boolean
+  useCount: number
+}
+
 export type BrandRow = {
   id: string
   userId: string
@@ -16,6 +23,10 @@ export type BrandRow = {
   articlesUrl: string | null
   dossierJson: string
   onboardingCompleted: boolean
+  color: string
+  position: number
+  archived: boolean
+  writingRulesJson: string
   createdAt: Date
   updatedAt: Date
 }
@@ -23,6 +34,7 @@ export type BrandRow = {
 export type ConversationRow = {
   id: string
   userId: string
+  brandId: string
   module: string
   title: string
   createdAt: Date
@@ -40,6 +52,7 @@ export type MessageRow = {
 export type SocialAccountRow = {
   id: string
   userId: string
+  brandId: string
   platform: string
   externalId: string
   displayName: string
@@ -55,6 +68,7 @@ export type SocialAccountRow = {
 export type MediaRow = {
   id: string
   userId: string
+  brandId: string
   kind: string
   source: string
   mime: string
@@ -68,8 +82,10 @@ export type MediaRow = {
 export type SocialPostRow = {
   id: string
   userId: string
+  brandId: string
   conversationId: string | null
   body: string
+  angle: string | null
   mediaAssetId: string | null
   imageUrl: string | null
   status: string
@@ -105,6 +121,7 @@ export type SocialTargetRow = {
 export type SiteArticleRow = {
   id: string
   userId: string
+  brandId: string
   url: string
   title: string
   excerpt: string | null
@@ -114,6 +131,7 @@ export type SiteArticleRow = {
 export type ArticleDraftRow = {
   id: string
   userId: string
+  brandId: string
   conversationId: string | null
   title: string
   slug: string
@@ -132,6 +150,7 @@ export type ArticleDraftRow = {
 export type SmtpRow = {
   id: string
   userId: string
+  brandId: string
   host: string
   port: number
   secure: boolean
@@ -149,6 +168,7 @@ export type SmtpRow = {
 export type CampaignRow = {
   id: string
   userId: string
+  brandId: string
   conversationId: string | null
   name: string
   goal: string | null
@@ -195,6 +215,7 @@ export type OutreachMessageRow = {
 export type FolderRow = {
   id: string
   userId: string
+  brandId: string
   parentId: string | null
   name: string
   createdAt: Date
@@ -260,6 +281,10 @@ export function mapBrand(record: PbRecord): BrandRow {
     articlesUrl: text(record.articlesUrl),
     dossierJson: jsonText(record.dossier, 'null'),
     onboardingCompleted: record.onboardingCompleted === true,
+    color: typeof record.color === 'string' && record.color ? record.color : '#1F6B4A',
+    position: numberOr(record.position, 0),
+    archived: record.archived === true,
+    writingRulesJson: jsonText(record.writingRules, '[]'),
     createdAt: requiredDate(record.created),
     updatedAt: requiredDate(record.updated),
   }
@@ -269,6 +294,7 @@ export function mapConversation(record: PbRecord): ConversationRow {
   return {
     id: record.id,
     userId: String(record.user || ''),
+    brandId: String(record.brand || ''),
     module: String(record.module || ''),
     title: String(record.title || ''),
     createdAt: requiredDate(record.created),
@@ -290,6 +316,7 @@ export function mapAccount(record: PbRecord): SocialAccountRow {
   return {
     id: record.id,
     userId: String(record.user || ''),
+    brandId: String(record.brand || ''),
     platform: String(record.platform || ''),
     externalId: String(record.externalId || ''),
     displayName: String(record.displayName || ''),
@@ -307,6 +334,7 @@ export function mapMedia(record: PbRecord): MediaRow {
   return {
     id: record.id,
     userId: String(record.user || ''),
+    brandId: String(record.brand || ''),
     kind: String(record.kind || ''),
     source: String(record.source || ''),
     mime: String(record.mime || 'application/octet-stream'),
@@ -322,8 +350,10 @@ export function mapPost(record: PbRecord): SocialPostRow {
   return {
     id: record.id,
     userId: String(record.user || ''),
+    brandId: String(record.brand || ''),
     conversationId: relation(record.conversation),
     body: String(record.body || ''),
+    angle: text(record.angle),
     mediaAssetId: relation(record.media),
     imageUrl: text(record.imageUrl),
     status: String(record.status || ''),
@@ -363,6 +393,7 @@ export function mapArticle(record: PbRecord): SiteArticleRow {
   return {
     id: record.id,
     userId: String(record.user || ''),
+    brandId: String(record.brand || ''),
     url: String(record.url || ''),
     title: String(record.title || ''),
     excerpt: text(record.excerpt),
@@ -374,6 +405,7 @@ export function mapDraft(record: PbRecord): ArticleDraftRow {
   return {
     id: record.id,
     userId: String(record.user || ''),
+    brandId: String(record.brand || ''),
     conversationId: relation(record.conversation),
     title: String(record.title || ''),
     slug: String(record.slug || ''),
@@ -395,6 +427,7 @@ export function mapSmtp(record: PbRecord): SmtpRow {
   return {
     id: record.id,
     userId: String(record.user || ''),
+    brandId: String(record.brand || ''),
     host: String(record.host || ''),
     port: numberOr(record.port, 0),
     secure: record.secure === true,
@@ -414,6 +447,7 @@ export function mapCampaign(record: PbRecord): CampaignRow {
   return {
     id: record.id,
     userId: String(record.user || ''),
+    brandId: String(record.brand || ''),
     conversationId: relation(record.conversation),
     name: String(record.name || ''),
     goal: text(record.goal),
@@ -468,6 +502,7 @@ export function mapFolder(record: PbRecord): FolderRow {
   return {
     id: record.id,
     userId: String(record.user || ''),
+    brandId: String(record.brand || ''),
     parentId: relation(record.parent),
     name: String(record.name || ''),
     createdAt: requiredDate(record.created),

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { requireUser } from '../../../../utils/auth'
+import { requireBrand } from '../../../../utils/scope'
 import { apiError, parseInput } from '../../../../utils/http'
 import { createRecipients, findCampaign } from '../../../../utils/store'
 
@@ -12,10 +12,10 @@ const schema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
+  const { user, brand } = await requireBrand(event)
   const campaignId = getRouterParam(event, 'id')
   if (!campaignId) apiError(400, 'Campagne ontbreekt')
-  const campaign = await findCampaign(campaignId, user.id)
+  const campaign = await findCampaign(campaignId, user.id, brand.id)
   if (!campaign) apiError(404, 'Campagne niet gevonden')
   const input = parseInput(schema, await readBody(event))
   const rows = [

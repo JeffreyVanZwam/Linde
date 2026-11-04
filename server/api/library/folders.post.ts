@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { requireUser } from '../../utils/auth'
+import { requireBrand } from '../../utils/scope'
 import { apiError, parseInput } from '../../utils/http'
 import { createFolder, findFolder } from '../../utils/store'
 
@@ -9,9 +9,9 @@ const schema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
+  const { user, brand } = await requireBrand(event)
   const input = parseInput(schema, await readBody(event))
-  if (input.parentId && !await findFolder(input.parentId, user.id)) apiError(404, 'Map niet gevonden')
-  const id = await createFolder(user.id, input.name, input.parentId || null)
+  if (input.parentId && !await findFolder(input.parentId, user.id, brand.id)) apiError(404, 'Map niet gevonden')
+  const id = await createFolder(user.id, brand.id, input.name, input.parentId || null)
   return { id }
 })

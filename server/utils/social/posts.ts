@@ -17,8 +17,8 @@ export const postInputSchema = z.object({
   })).min(1),
 })
 
-export async function listPostsForUser(userId: string) {
-  const posts = await listPosts(userId)
+export async function listPostsForUser(userId: string, brandId: string) {
+  const posts = await listPosts(userId, brandId)
   const targets = await listTargetsForPosts(posts.map(post => post.id))
   const labels = labelById(targets)
   const corpus = targets.filter(target => target.status === 'published' || target.status === 'scheduled')
@@ -42,8 +42,8 @@ export async function listPostsForUser(userId: string) {
   })
 }
 
-export async function comparableTargets(userId: string, exceptPostId?: string) {
-  const posts = await listPosts(userId, 80)
+export async function comparableTargets(userId: string, brandId: string, exceptPostId?: string) {
+  const posts = await listPosts(userId, brandId, 80)
   const targets = await listTargetsForPosts(posts.map(post => post.id))
   return targets.filter(target =>
     target.accountId
@@ -56,15 +56,15 @@ export function accountDuplicate(body: string, accountId: string, corpus: Array<
   return duplicateWarning(body, corpus.filter(item => item.accountId === accountId).map(item => item.body))
 }
 
-export async function writePost(userId: string, input: z.infer<typeof postInputSchema>, postId?: string) {
-  const accounts = await listSocialAccounts(userId)
+export async function writePost(userId: string, brandId: string, input: z.infer<typeof postInputSchema>, postId?: string) {
+  const accounts = await listSocialAccounts(userId, brandId)
   const media = input.mediaAssetId ? await findMedia(input.mediaAssetId) : null
-  if (input.mediaAssetId && (!media || media.userId !== userId)) apiError(400, 'Media hoort niet bij deze gebruiker')
+  if (input.mediaAssetId && (!media || media.userId !== userId || media.brandId !== brandId)) apiError(400, 'Media hoort niet bij dit merk')
   const scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : null
   if (input.status === 'scheduled' && (!scheduledAt || Number.isNaN(scheduledAt.getTime()))) {
     apiError(400, 'Kies een datum om in te plannen')
   }
-  const corpus = await comparableTargets(userId, postId)
+  const corpus = await comparableTargets(userId, brandId, postId)
   const prepared = input.targets.map((target) => {
     const account = accounts.find(item => item.id === target.accountId)
     if (!account) apiError(400, 'Onbekend social account')
@@ -88,6 +88,7 @@ export async function writePost(userId: string, input: z.infer<typeof postInputS
   const postStatus = prepared.some(target => target.status === 'scheduled') ? 'scheduled' : input.status === 'scheduled' ? 'draft' : input.status
   const idToUse = postId || await createPost({
     userId,
+    brandId,
     body: input.body,
     mediaAssetId: input.mediaAssetId || null,
     status: postStatus,
@@ -96,7 +97,7 @@ export async function writePost(userId: string, input: z.infer<typeof postInputS
     duplicateWarning: warning,
   })
   if (postId) {
-    const existing = await findPost(postId, userId)
+    const existing = await findPost(postId, userId, brandId)
     if (!existing || existing.source !== 'local') apiError(404, 'Post niet gevonden')
     await updatePost(postId, {
       body: input.body,

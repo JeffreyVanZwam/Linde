@@ -1,9 +1,9 @@
-import { requireUser } from '../../utils/auth'
+import { requireBrand } from '../../utils/scope'
 import { findSmtp } from '../../utils/store'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
-  const row = await findSmtp(user.id)
+  const { user, brand } = await requireBrand(event)
+  const row = await findSmtp(user.id, brand.id)
   if (!row) return null
   return {
     host: row.host,

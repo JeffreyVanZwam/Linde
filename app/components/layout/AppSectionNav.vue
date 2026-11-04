@@ -17,6 +17,10 @@ const items = computed(() => {
       { to: '/social/calendar', label: t('social.calendar'), on: (value: string) => value.startsWith('/social/calendar') },
       { to: '/social/published', label: t('social.published'), on: (value: string) => value.startsWith('/social/published') },
       { to: '/social/compose', label: t('social.compose'), on: (value: string) => value.startsWith('/social/compose') },
+      { to: '/social/replies', label: t('forge.replies'), on: (value: string) => value.startsWith('/social/replies') },
+      { to: '/social/proof', label: t('forge.proof'), on: (value: string) => value.startsWith('/social/proof') },
+      { to: '/social/series', label: t('forge.series'), on: (value: string) => value.startsWith('/social/series') },
+      { to: '/social/magnets', label: t('forge.magnets'), on: (value: string) => value.startsWith('/social/magnets') },
     ]
   }
   if (current.startsWith('/seo')) {

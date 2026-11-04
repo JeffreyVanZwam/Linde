@@ -39,6 +39,48 @@ function accountLabel(account: { displayName: string, platform: string, authorTy
 }
 const error = ref('')
 const busy = ref(false)
+const ruleOffer = ref('')
+
+const chips = [
+  { id: 'shorter', label: 'forge.shorter' },
+  { id: 'hook', label: 'forge.hook' },
+  { id: 'casual', label: 'forge.casual' },
+  { id: 'sell', label: 'forge.sell' },
+] as const
+
+async function improve(instruction: string, accountId?: string) {
+  const source = accountId ? bodies[accountId] || body.value : body.value
+  if (!source.trim()) return
+  busy.value = true
+  error.value = ''
+  try {
+    const result = await api<{ text: string }>('/api/social/improve', { method: 'POST', body: { body: source, instruction } })
+    if (accountId) bodies[accountId] = result.text
+    else {
+      body.value = result.text
+      for (const id of selected.value) bodies[id] = result.text
+    }
+    ruleOffer.value = instruction
+  }
+  catch (cause) {
+    error.value = errorText(cause) || t('common.error')
+  }
+  finally {
+    busy.value = false
+  }
+}
+
+async function keepRule() {
+  if (!ruleOffer.value) return
+  const labels: Record<string, string> = {
+    shorter: t('forge.shorter'),
+    hook: t('forge.hook'),
+    casual: t('forge.casual'),
+    sell: t('forge.sell'),
+  }
+  await api('/api/brands/rules', { method: 'POST', body: { text: labels[ruleOffer.value] || ruleOffer.value } })
+  ruleOffer.value = ''
+}
 
 function payload(status: 'draft' | 'scheduled') {
   return {
@@ -125,6 +167,15 @@ async function retry() {
           <UiField :label="t('social.body')">
             <UiTextarea v-model="body" />
           </UiField>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <UiButton v-for="chip in chips" :key="chip.id" type="button" variant="ghost" :disabled="busy" @click="improve(chip.id)">
+              {{ t(chip.label) }}
+            </UiButton>
+          </div>
+          <p v-if="ruleOffer" class="mt-3 text-sm">
+            {{ t('forge.ruleOffer') }}
+            <button type="button" class="ml-2 font-medium text-accent" @click="keepRule">{{ t('forge.ruleSave') }}</button>
+          </p>
         </UiCard>
         <div class="grid gap-3 md:grid-cols-2">
           <label v-for="account in accounts" :key="account.id" class="block rounded-[1.4rem] border border-line bg-surface p-4">
@@ -133,7 +184,7 @@ async function retry() {
               {{ accountLabel(account) }}
             </span>
             <UiInput
-              v-if="account.platform === 'youtube' || account.platform === 'tiktok'"
+              v-if="account.platform === 'youtube' || account.platform === 'tiktok' || account.platform === 'pinterest'"
               :model-value="titles[account.id] || ''"
               class="mt-3"
               :placeholder="t('social.titleField')"

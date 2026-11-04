@@ -1,18 +1,18 @@
 import { z } from 'zod'
-import { requireUser } from '../../utils/auth'
+import { requireBrand } from '../../utils/scope'
 import { apiError, parseInput } from '../../utils/http'
 import { findFolder, listFilesIn, listFolders } from '../../utils/store'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
+  const { user, brand } = await requireBrand(event)
   const query = parseInput(z.object({ folder: z.string().optional() }), getQuery(event))
   const folderId = query.folder || null
-  if (folderId && !await findFolder(folderId, user.id)) apiError(404, 'Map niet gevonden')
-  const folders = (await listFolders(user.id)).filter(folder => folder.parentId === folderId)
-  const files = await listFilesIn(user.id, folderId)
+  if (folderId && !await findFolder(folderId, user.id, brand.id)) apiError(404, 'Map niet gevonden')
+  const folders = (await listFolders(user.id, brand.id)).filter(folder => folder.parentId === folderId)
+  const files = await listFilesIn(user.id, brand.id, folderId)
   return {
     folderId,
-    breadcrumb: await breadcrumb(user.id, folderId),
+    breadcrumb: await breadcrumb(user.id, brand.id, folderId),
     folders: folders.map(folder => ({ id: folder.id, name: folder.name })),
     files: files.map(file => ({
       id: file.id,
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
       size: file.size,
       image: file.kind === 'image',
     })),
-    allFolders: (await listFolders(user.id)).map(folder => ({
+    allFolders: (await listFolders(user.id, brand.id)).map(folder => ({
       id: folder.id,
       name: folder.name,
       parentId: folder.parentId,
@@ -31,13 +31,13 @@ export default defineEventHandler(async (event) => {
   }
 })
 
-async function breadcrumb(userId: string, folderId: string | null) {
+async function breadcrumb(userId: string, brandId: string, folderId: string | null) {
   const trail: Array<{ id: string, name: string }> = []
   let current = folderId
   const seen = new Set<string>()
   while (current && !seen.has(current)) {
     seen.add(current)
-    const folder = await findFolder(current, userId)
+    const folder = await findFolder(current, userId, brandId)
     if (!folder) break
     trail.unshift({ id: folder.id, name: folder.name })
     current = folder.parentId

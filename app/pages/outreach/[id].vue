@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
+const localePath = useLocalePath()
 const route = useRoute()
 type CampaignDetail = {
   campaign: { id: string, name: string, goal: string | null, audience: string | null, offer: string | null }
@@ -13,6 +14,22 @@ const campaignId = String(route.params.id)
 const data = ref(await api<CampaignDetail>(`/api/outreach/campaigns/${campaignId}`))
 const csv = ref('')
 const error = ref('')
+const companionBusy = ref(false)
+
+async function companion() {
+  companionBusy.value = true
+  error.value = ''
+  try {
+    await api(`/api/outreach/campaigns/${campaignId}/companion`, { method: 'POST' })
+    await navigateTo(localePath('/social'))
+  }
+  catch (cause) {
+    error.value = errorText(cause) || t('common.error')
+  }
+  finally {
+    companionBusy.value = false
+  }
+}
 const tab = ref('steps')
 const tabs = computed(() => [
   { id: 'steps', label: t('outreach.steps') },
@@ -59,7 +76,11 @@ async function approveAll() {
 <template>
   <div class="space-y-5">
     <AppBack to="/outreach" />
-    <AppPageHead :title="data.campaign.name" :lead="[data.campaign.audience, data.campaign.offer].filter(Boolean).join(' · ')" />
+    <AppPageHead :title="data.campaign.name" :lead="[data.campaign.audience, data.campaign.offer].filter(Boolean).join(' · ')">
+      <template #actions>
+        <UiButton variant="ghost" :disabled="companionBusy" @click="companion">{{ t('forge.companion') }}</UiButton>
+      </template>
+    </AppPageHead>
     <div class="grid gap-3 sm:grid-cols-3">
       <UiCard>
         <p class="text-sm text-muted">{{ t('outreach.steps') }}</p>

@@ -25,17 +25,17 @@ export type ExtractedBrand = z.infer<typeof brandSchema> & {
 
 const genericFonts = new Set(['inherit', 'initial', 'unset', 'serif', 'sans-serif', 'monospace', 'system-ui', 'ui-sans-serif', 'ui-serif', 'emoji', 'cursive', 'fantasy'])
 
-export async function extractBrand(userId: string, websiteUrl: string, locale: 'nl' | 'en'): Promise<ExtractedBrand> {
+export async function extractBrand(userId: string, brandId: string, websiteUrl: string, locale: 'nl' | 'en'): Promise<ExtractedBrand> {
   const page = await readSite(websiteUrl)
   const imageIds: string[] = []
   let logoMediaId: string | null = null
 
   if (page.logoUrl) {
-    const saved = await downloadAsset(userId, page.logoUrl, page.finalUrl, 'brand')
+    const saved = await downloadAsset(userId, brandId, page.logoUrl, page.finalUrl, 'brand')
     logoMediaId = saved
   }
   for (const imageUrl of page.imageUrls.slice(0, 6)) {
-    const saved = await downloadAsset(userId, imageUrl, page.finalUrl, 'brand')
+    const saved = await downloadAsset(userId, brandId, imageUrl, page.finalUrl, 'brand')
     if (saved) imageIds.push(saved)
   }
 
@@ -309,7 +309,7 @@ function formatPages(pages: PageCopy[]) {
   }).join('\n\n---\n\n')
 }
 
-async function downloadAsset(userId: string, assetUrl: string, baseUrl: string, source: string) {
+async function downloadAsset(userId: string, brandId: string, assetUrl: string, baseUrl: string, source: string) {
   try {
     const url = new URL(assetUrl, baseUrl)
     if (!['http:', 'https:'].includes(url.protocol)) return null
@@ -319,7 +319,7 @@ async function downloadAsset(userId: string, assetUrl: string, baseUrl: string, 
     if (!mime.startsWith('image/')) return null
     const bytes = Buffer.from(await response.arrayBuffer())
     if (!bytes.length || bytes.length > 2_000_000) return null
-    return await saveMedia({ userId, bytes, mime, source })
+    return await saveMedia({ userId, brandId, bytes, mime, source })
   }
   catch {
     return null

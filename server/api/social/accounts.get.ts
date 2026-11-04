@@ -1,10 +1,10 @@
-import { requireUser } from '../../utils/auth'
+import { requireBrand } from '../../utils/scope'
 import { parseJson } from '../../utils/http'
 import { listSocialAccounts } from '../../utils/store'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
-  const rows = await listSocialAccounts(user.id)
+  const { user, brand } = await requireBrand(event)
+  const rows = await listSocialAccounts(user.id, brand.id)
   return rows.map((row) => {
     const meta = parseJson<Record<string, string>>(row.metaJson, {})
     return {

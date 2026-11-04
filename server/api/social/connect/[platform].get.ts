@@ -4,7 +4,9 @@ import { apiError, id } from '../../../utils/http'
 import { socialApp } from '../../../utils/social/apps'
 import { linkedinAuthUrl } from '../../../utils/social/linkedin'
 import { facebookAuthUrl, instagramAuthUrl } from '../../../utils/social/meta'
+import { pinterestAuthUrl } from '../../../utils/social/pinterest'
 import { tiktokAuthUrl } from '../../../utils/social/tiktok'
+import { xAuthUrl, xVerifier } from '../../../utils/social/x'
 import { youtubeAuthUrl } from '../../../utils/social/youtube'
 
 export default defineEventHandler(async (event) => {
@@ -29,14 +31,18 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, `${prefix}/social/accounts?error=${encodeURIComponent(message)}`)
   }
   const state = id()
+  const verifier = xVerifier()
   setCookie(event, 'oauth_state', state, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 600 })
   setCookie(event, 'oauth_locale', locale, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 600 })
+  setCookie(event, 'oauth_verifier', verifier, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 600 })
   const url = {
     linkedin: linkedinAuthUrl(state, app),
     facebook: facebookAuthUrl(state, app),
     instagram: instagramAuthUrl(state, app),
     youtube: youtubeAuthUrl(state, app),
     tiktok: tiktokAuthUrl(state, app),
+    x: xAuthUrl(state, verifier, app),
+    pinterest: pinterestAuthUrl(state, app),
   }[platform]
   return sendRedirect(event, url)
 })

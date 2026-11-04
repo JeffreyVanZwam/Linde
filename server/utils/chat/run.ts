@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { chatModules, platformLimits, socialPlatforms, type ChatModule } from '~~/shared/platforms'
 import { aiConfig, getLanguageModel } from '../ai'
 import { brandInstructions, getBrand } from '../brand'
+import { listNotes } from '../knowledge'
 import { recentPerformance, socialBrief } from '../social/history'
 import { accountDuplicate, comparableTargets } from '../social/posts'
 import { createCampaign, createConversation, createDraft, createMessage, createPost, createStep, createTarget, findConversation, listMessages, listSiteArticles, listSocialAccounts, touchConversation } from '../store'
@@ -18,10 +19,10 @@ export function parseChat(data: unknown) {
   return chatSchema.parse(data)
 }
 
-export async function streamChat(userId: string, input: z.infer<typeof chatSchema>) {
+export async function streamChat(userId: string, brandId: string, input: z.infer<typeof chatSchema>) {
   let conversationId = input.conversationId
   if (conversationId) {
-    const existing = await findConversation(conversationId, userId)
+    const existing = await findConversation(conversationId, userId, brandId)
     if (!existing || existing.module !== input.module) {
       throw createError({ statusCode: 404, statusMessage: 'Gesprek niet gevonden' })
     }
@@ -29,6 +30,7 @@ export async function streamChat(userId: string, input: z.infer<typeof chatSchem
   else {
     conversationId = await createConversation({
       userId,
+      brandId,
       module: input.module,
       title: input.content.slice(0, 80),
     })
@@ -37,8 +39,9 @@ export async function streamChat(userId: string, input: z.infer<typeof chatSchem
   await touchConversation(conversationId)
   const history = await listMessages(conversationId)
   const brand = await getBrand(userId)
+  const notes = await listNotes(userId, brandId)
   const language = input.locale === 'en' ? 'Answer in English.' : 'Antwoord in het Nederlands.'
-  const brief = input.module === 'social' ? await socialBrief(userId, input.locale) : ''
+  const brief = input.module === 'social' ? await socialBrief(userId, brandId, input.locale) : ''
   const ai = aiConfig()
   const fallback = input.locale === 'en'
     ? 'Done. The result is saved in this module.'
@@ -52,11 +55,11 @@ export async function streamChat(userId: string, input: z.infer<typeof chatSchem
   const result = streamText({
     model: getLanguageModel(),
     maxRetries: ai.tier === 'free' ? 0 : 2,
-    instructions: `${language}\n\n${instructions(input.module)}${brief ? `\n\n${brief}` : ''}\n\nMerkprofiel:\n${brandInstructions(brand)}`,
+    instructions: `${language}\n\n${instructions(input.module)}${brief ? `\n\n${brief}` : ''}\n\nMerkprofiel:\n${brandInstructions(brand, notes)}`,
     messages: history
       .filter(message => message.role === 'user' || message.role === 'assistant')
       .map(message => ({ role: message.role as 'user' | 'assistant', content: message.content })),
-    tools: toolsFor(userId, input.module, conversationId),
+    tools: toolsFor(userId, brandId, input.module, conversationId),
     stopWhen: stepCountIs(5),
     abortSignal: AbortSignal.timeout(180_000),
     onError: async ({ error }) => {
@@ -97,7 +100,7 @@ function instructions(module: ChatModule) {
     return 'Je bent een business-strateeg. Help met positionering, aanbod, kanalen en prioriteiten. Gebruik alleen het merkprofiel. Verzin geen cijfers.'
   }
   if (module === 'social') {
-    return 'Je stelt social posts voor. Roep proposePost aan zodra de gebruiker een post wil. Pas de tekst per platform aan. Vraag om een video als het platform YouTube of TikTok is. Gebruik het prestatieoverzicht en getRecentPosts per account. Een target dat te veel lijkt op een bestaande post van dat account wordt overgeslagen; herschrijf dan alleen dat platform.'
+    return 'Je stelt social posts voor. Roep proposePost aan zodra de gebruiker een post wil. Pas de tekst per platform aan. YouTube en TikTok hebben video nodig, Instagram en Pinterest een afbeelding, X blijft binnen 280 tekens. Gebruik het prestatieoverzicht en getRecentPosts per account. Een target dat te veel lijkt op een bestaande post van dat account wordt overgeslagen; herschrijf dan alleen dat platform. Volg de schrijfregels van het merk.'
   }
   if (module === 'seo') {
     return 'Je schrijft SEO- en GEO-artikelen. GEO betekent dat het stuk citeerbaar is voor antwoordmachines: heldere entiteiten, definities, FAQ en merkconsistente feiten. Roep saveArticleDraft aan met het volledige artikel. Sluit aan op bestaande artikelen tenzij de gebruiker een nieuw thema vraagt. Publiceer niets zelf naar de website.'
@@ -105,19 +108,19 @@ function instructions(module: ChatModule) {
   return 'Je zet een nette acquisitieflow op met voorbeeldmails. Roep saveOutreachPlan aan. De gebruiker levert zelf ontvangers aan. Geen misleiding, geen nepadressen, en elke mail blijft een concept tot de gebruiker die accordeert.'
 }
 
-function toolsFor(userId: string, module: ChatModule, conversationId: string) {
+function toolsFor(userId: string, brandId: string, module: ChatModule, conversationId: string) {
   if (module === 'strategy') return {}
-  if (module === 'social') return socialTools(userId, conversationId)
-  if (module === 'seo') return seoTools(userId, conversationId)
-  return outreachTools(userId, conversationId)
+  if (module === 'social') return socialTools(userId, brandId, conversationId)
+  if (module === 'seo') return seoTools(userId, brandId, conversationId)
+  return outreachTools(userId, brandId, conversationId)
 }
 
-function socialTools(userId: string, conversationId: string) {
+function socialTools(userId: string, brandId: string, conversationId: string) {
   return {
     getRecentPosts: tool({
       description: 'Lees recente geplaatste posts per account, met een prestatielabel dat alleen binnen dat account geldt.',
       inputSchema: z.object({}),
-      execute: async () => recentPerformance(userId),
+      execute: async () => recentPerformance(userId, brandId),
     }),
     proposePost: tool({
       description: 'Sla een conceptpost op met platformspecifieke tekst. Een bijna-duplicaat op één account wordt overgeslagen; de andere platforms worden wel opgeslagen.',
@@ -131,8 +134,8 @@ function socialTools(userId: string, conversationId: string) {
         })).min(1),
       }),
       execute: async (input) => {
-        const accounts = await listSocialAccounts(userId)
-        const corpus = await comparableTargets(userId)
+        const accounts = await listSocialAccounts(userId, brandId)
+        const corpus = await comparableTargets(userId, brandId)
         const missing: string[] = []
         const skipped: Array<{ platform: string, reason: string }> = []
         const accepted: Array<{ accountId: string, platform: typeof input.targets[number]['platform'], body: string, title: string | null }> = []
@@ -162,6 +165,7 @@ function socialTools(userId: string, conversationId: string) {
         }
         const postId = await createPost({
           userId,
+          brandId,
           conversationId,
           body: input.body,
           status: 'draft',
@@ -184,13 +188,13 @@ function socialTools(userId: string, conversationId: string) {
   }
 }
 
-function seoTools(userId: string, conversationId: string) {
+function seoTools(userId: string, brandId: string, conversationId: string) {
   return {
     listArticles: tool({
       description: 'Toon artikelen die al op de site staan.',
       inputSchema: z.object({}),
       execute: async () => {
-        const articles = await listSiteArticles(userId)
+        const articles = await listSiteArticles(userId, brandId)
         return articles.map(article => ({ title: article.title, url: article.url, excerpt: article.excerpt }))
       },
     }),
@@ -211,6 +215,7 @@ function seoTools(userId: string, conversationId: string) {
       execute: async (input) => {
         const draftId = await createDraft({
           userId,
+          brandId,
           conversationId,
           title: input.title,
           slug: input.slug,
@@ -229,7 +234,7 @@ function seoTools(userId: string, conversationId: string) {
   }
 }
 
-function outreachTools(userId: string, conversationId: string) {
+function outreachTools(userId: string, brandId: string, conversationId: string) {
   return {
     saveOutreachPlan: tool({
       description: 'Sla een acquisitiecampagne met voorbeeldmails op als concept.',
@@ -247,6 +252,7 @@ function outreachTools(userId: string, conversationId: string) {
       execute: async (input) => {
         const campaignId = await createCampaign({
           userId,
+          brandId,
           conversationId,
           name: input.name,
           goal: input.goal,

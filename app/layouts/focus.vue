@@ -16,7 +16,10 @@ const wide = computed(() => route.path.includes('/onboarding'))
             {{ $t('app.name') }}
           </p>
         </div>
-        <AppLocaleSwitch />
+        <div class="flex items-center gap-3">
+          <BrandSwitcher plain class="w-56" />
+          <AppLocaleSwitch />
+        </div>
       </div>
       <div class="mt-8">
         <slot />

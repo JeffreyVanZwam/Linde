@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { requireUser } from '../../../utils/auth'
 import { apiError, parseInput } from '../../../utils/http'
+import { requireBrand } from '../../../utils/scope'
 import { findCampaign, findOutreachMessage, updateOutreachMessage } from '../../../utils/store'
 
 const schema = z.object({
@@ -11,14 +11,14 @@ const schema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
+  const { user, brand } = await requireBrand(event)
   const messageId = getRouterParam(event, 'id')
   if (!messageId) apiError(400, 'Bericht ontbreekt')
   const input = parseInput(schema, await readBody(event))
   const message = await findOutreachMessage(messageId)
   if (!message) apiError(404, 'Bericht niet gevonden')
   const campaign = await findCampaign(message.campaignId)
-  if (!campaign || campaign.userId !== user.id) apiError(404, 'Bericht niet gevonden')
+  if (!campaign || campaign.userId !== user.id || campaign.brandId !== brand.id) apiError(404, 'Bericht niet gevonden')
   if (message.status === 'sent') apiError(400, 'Verzonden berichten blijven staan')
   await updateOutreachMessage(message.id, {
     status: input.status,

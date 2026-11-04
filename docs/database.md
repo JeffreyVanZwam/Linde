@@ -7,7 +7,7 @@ The Nuxt server uses a superuser (`POCKETBASE_ADMIN_EMAIL` / `POCKETBASE_ADMIN_P
 ## Collections
 
 - `users` — PocketBase auth. Extra fields: `name`, `role` (`admin` or `member`).
-- `brands` — one brand profile per user. Logo and images point at `library_files`.
+- `brands` — one or more brand profiles per user. The active brand is `users.activeBrand`. Logo and images point at `library_files`. Chats, files, social accounts, posts, articles, SMTP and campaigns belong to a brand.
 - `conversations`, `messages` — chats per module (`strategy`, `social`, `seo`, `outreach`).
 - `social_provider_apps` — per user, the developer-app client id and encrypted secret used to start OAuth.
 - `social_accounts` — platform, external id, encrypted tokens.

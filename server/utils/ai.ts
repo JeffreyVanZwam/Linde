@@ -37,7 +37,12 @@ export function languageModelProblem(error: unknown) {
   if (!APICallError.isInstance(error)) return null
   const provider = aiConfig().provider
   const name = provider === 'gemini' ? 'Gemini' : provider === 'openai' ? 'OpenAI' : provider === 'anthropic' ? 'Anthropic' : 'Het gratis model'
-  if (error.statusCode === 402) return `${name} heeft geen tegoed meer. Vul het tegoed aan of kies een ander model in .env.`
+  if (error.statusCode === 402) {
+    if (provider === 'free' && !aiConfig().freeApiKey) {
+      return 'Het gratis model laat één antwoord per 45 seconden toe. Wacht even en probeer opnieuw.'
+    }
+    return `${name} heeft geen tegoed meer. Vul het tegoed aan of kies een ander model in .env.`
+  }
   if (error.statusCode === 429) return `${name} heeft het verzoeklimiet bereikt. Wacht even of kies een ander model in .env.`
   if (error.statusCode === 401 || error.statusCode === 403) return `De sleutel voor ${name} is geweigerd. Controleer .env.`
   return null
@@ -54,16 +59,51 @@ export function hasLanguageModel() {
   return Boolean(keys[config.provider])
 }
 
+const freeGapMs = 46_000
+let freeTail = Promise.resolve()
+let freeNextAt = 0
+
+function enqueueFree<T>(job: () => Promise<T>) {
+  const run = freeTail.then(job, job)
+  freeTail = run.then(() => undefined, () => undefined)
+  return run
+}
+
+async function freeRequest(input: RequestInfo | URL, init?: RequestInit) {
+  const source = new Request(input, init)
+  if (aiConfig().freeApiKey) return source
+  const headers = new Headers(source.headers)
+  headers.delete('authorization')
+  const bodyless = source.method === 'GET' || source.method === 'HEAD'
+  return new Request(source.url, {
+    method: source.method,
+    headers,
+    body: bodyless ? null : source.body,
+    duplex: 'half',
+  } as RequestInit)
+}
+
+async function fetchFreeOnce(request: Request) {
+  const copies = [request, request.clone(), request.clone()]
+  let response = await fetch(copies[0])
+  for (let attempt = 0; attempt < 2 && (response.status === 402 || response.status === 429); attempt++) {
+    const wait = Number(response.headers.get('retry-after'))
+    if (!Number.isFinite(wait) || wait <= 0 || wait > 60) return response
+    await response.body?.cancel()
+    await new Promise(resolve => setTimeout(resolve, wait * 1000))
+    freeNextAt = Date.now() + freeGapMs
+    response = await fetch(copies[attempt + 1])
+  }
+  return response
+}
+
 async function freeFetch(input: RequestInfo | URL, init?: RequestInit) {
-  const first = input instanceof Request ? input.clone() : input
-  const response = await fetch(first, init)
-  if (response.status !== 402 && response.status !== 429) return response
-  const wait = Number(response.headers.get('retry-after'))
-  if (!Number.isFinite(wait) || wait <= 0 || wait > 40) return response
-  await response.body?.cancel()
-  await new Promise(resolve => setTimeout(resolve, wait * 1000))
-  const second = input instanceof Request ? input.clone() : input
-  return fetch(second, init)
+  return enqueueFree(async () => {
+    const delay = freeNextAt - Date.now()
+    if (delay > 0) await new Promise(resolve => setTimeout(resolve, delay))
+    freeNextAt = Date.now() + freeGapMs
+    return fetchFreeOnce(await freeRequest(input, init))
+  })
 }
 
 export function getLanguageModel() {

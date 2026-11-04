@@ -3,7 +3,9 @@ import { readyAccount } from './accounts'
 import { linkedinRecent } from './linkedin'
 import { metricPatch, refreshAccountMetrics } from './metrics'
 import { metaRecent } from './meta'
+import { pinterestRecent } from './pinterest'
 import { tiktokRecent } from './tiktok'
+import { xRecent } from './x'
 import type { RemotePost } from './types'
 import { youtubeRecent } from './youtube'
 
@@ -16,6 +18,8 @@ export async function syncAccount(accountId: string) {
     else if (account.platform === 'facebook' || account.platform === 'instagram') posts = await metaRecent(account)
     else if (account.platform === 'youtube') posts = await youtubeRecent(account.accessToken, account.meta?.uploadsPlaylistId || '')
     else if (account.platform === 'tiktok') posts = await tiktokRecent(account.accessToken)
+    else if (account.platform === 'x') posts = await xRecent(account.accessToken, account.externalId)
+    else if (account.platform === 'pinterest') posts = await pinterestRecent(account.accessToken)
   }
   catch (error) {
     warning = error instanceof Error ? error.message : 'Synchronisatie mislukte'
@@ -43,6 +47,7 @@ export async function syncAccount(accountId: string) {
     }
     const postId = await createPost({
       userId: row.userId,
+      brandId: row.brandId,
       body: post.body,
       imageUrl: post.imageUrl || null,
       status: 'published',
