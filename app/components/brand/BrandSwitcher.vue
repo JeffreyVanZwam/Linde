@@ -29,7 +29,8 @@ async function load() {
 await load()
 
 const active = computed(() => brands.value.find(brand => brand.id === activeId.value) || null)
-const visible = computed(() => brands.value.filter(brand => !brand.archived || brand.id === activeId.value))
+const visible = computed(() => brands.value.filter(brand => !brand.archived))
+const archivedBrands = computed(() => brands.value.filter(brand => brand.archived))
 
 async function choose(id: string) {
   error.value = ''
@@ -53,8 +54,18 @@ async function create() {
 }
 
 async function archive(brand: BrandChip, archived: boolean) {
-  await api(`/api/brands/${brand.id}`, { method: 'PATCH', body: { archived } })
-  await load()
+  error.value = ''
+  try {
+    await api(`/api/brands/${brand.id}`, { method: 'PATCH', body: { archived } })
+    if (archived && brand.id === activeId.value) {
+      window.location.assign(localePath('/'))
+      return
+    }
+    await load()
+  }
+  catch (cause) {
+    error.value = errorText(cause) || t('common.error')
+  }
 }
 
 async function move(index: number, direction: number) {
@@ -105,12 +116,27 @@ async function remove() {
         <button type="button" class="inline-flex size-8 items-center justify-center opacity-70" :disabled="index === 0" @click="move(index, -1)">
           <Icon name="solar:alt-arrow-up-linear" class="size-4" />
         </button>
-        <button type="button" class="inline-flex size-8 items-center justify-center opacity-70" @click="archive(brand, !brand.archived)">
-          <Icon :name="brand.archived ? 'solar:restart-linear' : 'solar:archive-linear'" class="size-4" />
+        <button type="button" class="inline-flex size-8 items-center justify-center opacity-70" :aria-label="t('brands.archive')" @click="archive(brand, true)">
+          <Icon name="solar:archive-linear" class="size-4" />
         </button>
-        <button type="button" class="inline-flex size-8 items-center justify-center opacity-70" @click="removing = brand; confirmName = ''">
+        <button type="button" class="inline-flex size-8 items-center justify-center opacity-70" :aria-label="t('brands.delete')" @click="removing = brand; confirmName = ''">
           <Icon name="solar:trash-bin-trash-linear" class="size-4" />
         </button>
+      </div>
+      <div v-if="archivedBrands.length" class="mt-2 border-t border-current/15 pt-2">
+        <p class="px-2 pb-1 text-xs uppercase tracking-wide opacity-70">{{ t('brands.archived') }}</p>
+        <div v-for="brand in archivedBrands" :key="brand.id" class="flex items-center gap-1">
+          <span class="flex min-h-11 min-w-0 flex-1 items-center gap-2 px-2 text-sm opacity-70">
+            <span class="size-2.5 shrink-0 rounded-full" :style="{ background: brand.color }" />
+            <span class="truncate">{{ brand.companyName || t('brands.label') }}</span>
+          </span>
+          <button type="button" class="inline-flex size-8 items-center justify-center opacity-70" :aria-label="t('brands.restore')" @click="archive(brand, false)">
+            <Icon name="solar:restart-linear" class="size-4" />
+          </button>
+          <button type="button" class="inline-flex size-8 items-center justify-center opacity-70" :aria-label="t('brands.delete')" @click="removing = brand; confirmName = ''">
+            <Icon name="solar:trash-bin-trash-linear" class="size-4" />
+          </button>
+        </div>
       </div>
       <form class="mt-2 flex gap-2" @submit.prevent="create">
         <input v-model="name" class="min-w-0 flex-1 rounded-xl border border-current/15 bg-transparent px-3 py-2 text-sm" :placeholder="t('brands.name')">
